@@ -4,7 +4,7 @@ W.I.P. NES Emulator created in Java around [LibGDX](https://libgdx.badlogicgames
 
 Kind of messy and doesn't do a whole lot. No mappers besides NROM supported. Mostly for fun and learning.
 
-![](http://i.imgur.com/tFf7o81.png) ![](http://i.imgur.com/Iw47f7O.png)
+![](http://i.imgur.com/tFf7o81.png =257x263) ![](http://i.imgur.com/Iw47f7O.png =257x263)
 
 # LICENSE
 
