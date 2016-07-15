@@ -56,7 +56,6 @@ public class PPU_MMU {
                 }
                 else{
                     // Palette Mirroring. This is probably a hacky way to do it. I'm not sure what the proper way is.
-                    // I Can't find a real pattern so it's confusing
                     // TODO: Fix this maybe?
                     if(((address >> 4)&0xF) == 1 && (address & 0x3) == 0){
                         address = address - 0x10;
@@ -95,7 +94,6 @@ public class PPU_MMU {
                 }
                 else{
                     // Palette Mirroring. This is probably a hacky way to do it. I'm not sure what the proper way is.
-                    // I Can't find a real pattern so it's confusing
                     // TODO: Fix this maybe?
                     if(((address >> 4)&0xF) == 1 && (address & 0x3) == 0){
                         address = address - 0x10;
