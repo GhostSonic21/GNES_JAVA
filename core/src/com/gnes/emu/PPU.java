@@ -56,6 +56,9 @@ public class PPU {
     private int PPUADDR = 0x0000;               // The address of PPUData to write when PPUData recieves data
     private boolean PPUADDRToggle = false;      // false: Upper byte, true: lower. Toggles on write
 
+    // PPUData read buffer
+    int PPUDataReadBuffer = 0x00;
+
 
 
 
@@ -143,7 +146,7 @@ public class PPU {
                 // Writable
                 baseNameTable = data & 0x3;
                 VRAMInc = (data & 0x4) > 0;
-                spriteTable  = (data & 0x8) > 0;
+                spriteTable = (data & 0x8) > 0;
                 backgroundTable = (data & 0x10) > 0;
                 spriteSize = (data & 0x20) > 0;
                 PPUMasterSlave = (data & 0x40) > 0;
@@ -238,7 +241,6 @@ public class PPU {
         // TODO: Proper read implementation
         switch (address){
             case 0x2:{
-                //returnByte = PPUSTATUS;
                 returnByte = latch & 0x1F;  // First 5 bytes of latch are here for some reason
                 returnByte = returnByte|((spriteOverflow ? 1:0) << 5)|((spriteZeroHit ? 1:0) << 6)|
                         ((vBlank ? 1:0) << 7);
@@ -246,13 +248,22 @@ public class PPU {
                 break;
             }
             case 0x4:{
-                //returnByte = OAMDATA;
                 returnByte = OAM[OAMADDR];
                 break;
             }
             case 0x7:{
-                //returnByte = PPUDATA;
-                returnByte = MMU.readByte(PPUADDR);
+                // Regions before palette return from a buffer that's only updated on reads
+                if (PPUADDR < 0x3F00){
+                    returnByte = PPUDataReadBuffer;
+                    PPUDataReadBuffer = MMU.readByte(PPUADDR);
+                }
+                // Palette data comes directly however
+                else {
+                    returnByte = MMU.readByte(PPUADDR);
+                    // Buffer contains mirrored nametable byte instead
+                    PPUDataReadBuffer = MMU.readByte(address & 0x2F1F);
+                }
+                // Incremented all the same
                 PPUADDR = (PPUADDR + (VRAMInc ? 32:1)) & 0xFFFF;
                 break;
             }
@@ -329,7 +340,7 @@ public class PPU {
             if (byte0 < 0xEF || byte3 < 0xF9) {
                 // TODO: Fix tile gathering (Why is this a todo what does this even mean)
                 // the 0x4 or'd in indicates it's a sprite palette
-                Pixmap sprite = drawTile(byte1, 0, 0x4 | (byte2 & 0x3), (byte2 & 0x40) > 0, (byte2 & 0x80) > 0);
+                Pixmap sprite = drawTile(byte1, spriteTable ? 1:0, 0x4 | (byte2 & 0x3), (byte2 & 0x40) > 0, (byte2 & 0x80) > 0);
                 // Draw to framebuffer
                 frameBuffer.drawPixmap(sprite, byte3, byte0 + 1);
                 // Debug draw thing
@@ -356,7 +367,7 @@ public class PPU {
                 int cornerNum = (((i/2)%2) + (((j/2)%2)*2))*2;
                 int attribute = (MMU.readByte(attributeByte) >> cornerNum) & 0x3;
                 //int attribute = ((MMU.readByte(0x23C0 + (i/4))) >> ((i%4)*2)) & 0x3;
-                Pixmap tempTile = drawTile(MMU.readByte(0x2000 + i + (j*32)), 1, attribute, false, false); // Hard coded pattern for now I guess
+                Pixmap tempTile = drawTile(MMU.readByte(0x2000 + i + (j*32)), backgroundTable ? 1:0, attribute, false, false); // Hard coded pattern for now I guess
                 frameBuffer.drawPixmap(tempTile, i*8, j*8);
                 tempTile.dispose();
             }
