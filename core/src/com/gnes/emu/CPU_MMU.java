@@ -23,6 +23,7 @@ public class CPU_MMU {
     Cartridge cartridge;
     PPU PPU;
     Controller controller;
+    int cycleAdditions;
 
     // Constructors
     // Add objects as needed
@@ -109,6 +110,7 @@ public class CPU_MMU {
                     OAMData[i] = readByte(OAMDMAaddress + i);
                 }
                 PPU.OAMDMA(OAMData);
+                cycleAdditions += 513;  // 513 additional cpu cycles for a DMA
             }
         }
         else if (address >= 0x4020 && address <= 0x5FFF) {
@@ -122,5 +124,12 @@ public class CPU_MMU {
         writeByte(address, data & 0xFF);
         data >>= 8;
         writeByte(address + 1, data & 0xFF);
+    }
+
+    // Getter for cycle additions
+    public int getCycleAdditions(){
+        int returnData = cycleAdditions;
+        cycleAdditions = 0;
+        return returnData;
     }
 }

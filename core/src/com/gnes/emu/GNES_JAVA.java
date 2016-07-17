@@ -45,8 +45,10 @@ public class GNES_JAVA extends ApplicationAdapter {
             NESController.pollController();
             // Execute CPU
             NESCPU.execInst(NESPPU.NMITriggered(), false);
+            // Get final CPU cycle count before triggering PPU step
+            int cycles = NESCPU.getLastCycleCount() + NESMMU.getCycleAdditions();
             // Step the PPU
-            NESPPU.step(NESCPU.getLastCycleCount());
+            NESPPU.step(cycles);
         }
         // Render the framebuffer once vblank starts
         frameBuffer = NESPPU.getFrameBuffer();
