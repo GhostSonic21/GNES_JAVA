@@ -4,12 +4,14 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 public class GNES_JAVA extends ApplicationAdapter {
 	SpriteBatch batch;
 	Texture img;
+    OrthographicCamera mainCamera;
 
     Texture frameBuffer;
 	// Emulator classes
@@ -23,6 +25,11 @@ public class GNES_JAVA extends ApplicationAdapter {
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
+        mainCamera = new OrthographicCamera(256, 240);
+        mainCamera.position.set(256/2, 240/2, 0);   // Set camera position to the corner
+        mainCamera.update();
+        batch.setProjectionMatrix(mainCamera.combined);
+
         // Create Emulator Classes
         //NESCart = new Cartridge(Gdx.files.internal("./instr_test-v5/rom_singles/16-special.nes"));
         NESCart = new Cartridge(Gdx.files.internal("DonkeyKong.nes"));
@@ -54,7 +61,7 @@ public class GNES_JAVA extends ApplicationAdapter {
         frameBuffer = NESPPU.getFrameBuffer();
         batch.begin();
         //batch.draw(frameBuffer, 0, 0, 256*2, 240*2);
-        batch.draw(frameBuffer, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        batch.draw(frameBuffer, 0, 0, 256, 240);
         batch.end();
         frameBuffer.dispose();
 		/*batch.begin();
