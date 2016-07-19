@@ -420,11 +420,7 @@ public class PPU {
             int paletteIndex = (attribute << 2)|(MMU.readByte(patternTable + (tilePointer << 4) + pixelY) >> (7 - pixelX))&0x1|
                     ((MMU.readByte(patternTable + (tilePointer << 4) + (pixelY + 8)) >> (7 - pixelX)) & 0x1) << 1;
             if ((paletteIndex & 0x3) != 0){
-                //lineBuffer[i] = palette[MMU.readByte(0x3F00 + paletteIndex)];
                 lineBuffer[i] = paletteIndex;
-            }
-            else{
-                lineBuffer[i] = 0;
             }
         }
     }
