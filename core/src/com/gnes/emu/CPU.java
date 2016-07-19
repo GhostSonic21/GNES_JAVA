@@ -123,9 +123,15 @@ public class CPU {
         int opcode = MMU.readByte(reg_PC) & 0xFF;
         // Used for debugging
         //System.out.printf("PC: 0x%04X Opcode: 0x%02x\n", reg_PC, opcode);
-        /*if (reg_PC == 0xC940){
-            System.out.println("Break");
-        }*/
+        if (reg_PC == 0x8E5C){
+            //System.out.println("Break (Controller read)");
+        }
+
+        if (reg_PC == 0x824a){
+            //System.out.println("Break 2 (Menu start check)");
+            //flag_Z = true;
+        }
+
         //
         reg_PC++;   // Advance PC ahead once before executing
         reg_PC &= 0xFFFF;
@@ -812,6 +818,7 @@ public class CPU {
             case 0x04: {
                 // Indirect Indexed
                 address = MMU.readWordIndirect(MMU.readByte(reg_PC)) + reg_Y;
+                address &= 0xFFFF;
                 reg_PC++;
                 break;
             }
@@ -825,6 +832,7 @@ public class CPU {
             case 0x06: {
                 // Absolute, Y
                 address = MMU.readWord(reg_PC) + reg_Y;
+                address &= 0xFFFF;
                 reg_PC += 2;
                 break;
             }
