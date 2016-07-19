@@ -171,6 +171,7 @@ public class CPU {
                         //TODO: CHECK BRK
                         flag_B = true;
                         //IRQ = true;
+                        reg_PC = (reg_PC + 1) & 0xFFFF;
                         interruptPush(0xFFFE);
                         break;
                     }
