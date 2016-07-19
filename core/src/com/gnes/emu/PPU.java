@@ -105,18 +105,16 @@ public class PPU {
             //cycleCount = 0;
             lineCount++;
             if (lineCount < 240) {
+                // Zero out line buffer
+                for (int i = 0; i < 256; i++){
+                    lineBuffer[i] = 0;
+                }
                 if (showBG) {
                     drawBGScanLine(scrollX + ((baseNameTable & 0x1) > 0 ? 256 : 0),
                             scrollY + lineCount + ((baseNameTable & 0x2) > 0 ? 240 : 0), lineCount);
                 }
                 if (showSprites) {
                     drawSpriteLine(lineCount);
-                }
-                if (!showBG && !showSprites){
-                    // Rendering turned off, zero out sprite buffer
-                    for (int i = 0; i < 256; i++){
-                        lineBuffer[i] = 0;
-                    }
                 }
                 renderLine(lineCount);
             }
