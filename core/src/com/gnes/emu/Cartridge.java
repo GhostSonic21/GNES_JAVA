@@ -102,6 +102,23 @@ public class Cartridge {
         return;
     }
 
+    // Nametable map
+    public int nameTableMap(int address){
+        int returnData = 0;
+        // Vertical mirroring
+        if ((flags6 & 0x1) > 0){
+            returnData = address & 0x7FF;
+        }
+        // Horizontal mirroring
+        else{
+            returnData = address & 0x3FF;
+            if ((address & 0x800) > 0){
+                returnData |= 0x400;
+            }
+        }
+        return returnData;
+    }
+
     // Code for nes test suites
     private void outputResult(){
         int charNum = 0x4;  // Starts at 0x6004

@@ -46,13 +46,13 @@ public class PPU_MMU {
             case 0x2:{
                 // Map to VRAM
                 // TODO: Figure out how the nametable works
-                returnByte = VRAM[address & 0x7FF];
+                returnByte = VRAM[cartridge.nameTableMap(address)];
                 break;
             }
             case 0x3:{
                 // Part of this is just a mirror of VRAM, rest is palette ram indexes
                 if (address < 0x3F00){
-                    returnByte = VRAM[address & 0x7FF];
+                    returnByte = VRAM[cartridge.nameTableMap(address-0x1000)];
                 }
                 else{
                     // Palette Mirroring. This is probably a hacky way to do it. I'm not sure what the proper way is.
@@ -84,13 +84,13 @@ public class PPU_MMU {
             case 0x2:{
                 // Map to VRAM
                 // TODO: Figure out how the nametable works
-                VRAM[address & 0x7FF] = data & 0xFF;
+                VRAM[cartridge.nameTableMap(address)] = data & 0xFF;
                 break;
             }
             case 0x3:{
                 // Part of this is just a mirror of VRAM, rest is pallete ram indexes
                 if (address < 0x3F00){
-                    VRAM[address & 0x7FF] = data & 0xFF;
+                    VRAM[cartridge.nameTableMap(address-0x1000)] = data & 0xFF;
                 }
                 else{
                     // Palette Mirroring. This is probably a hacky way to do it. I'm not sure what the proper way is.
