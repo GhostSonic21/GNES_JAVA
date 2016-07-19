@@ -103,6 +103,8 @@ public class PPU {
             cycleCount -= 341;
             //cycleCount = 0;
             lineCount++;
+            bgScanLineTest(scrollX + ((baseNameTable & 0x1) > 0 ? 256:0),
+                    scrollY+lineCount  + ((baseNameTable & 0x2) > 0 ? 240:0), lineCount);    // Expirementing
 
             // SUPER MARIO BROS SPRITE 0 HACK (Don't use this except for testing!!!)
             /*if (lineCount == 30){
@@ -119,7 +121,7 @@ public class PPU {
                 newVblank = true;
                 NMI = NMIGenerate;
                 // TODO: replace this rendering method
-                drawNameTable0();   // Temporary way of rendering just so we can have some output
+                //drawNameTable0();   // Temporary way of rendering just so we can have some output
                 drawSprites();      // Temp sprite draw
             }
             // Reset line count
@@ -127,6 +129,7 @@ public class PPU {
                 lineCount = -1;
                 vBlank = false;
                 spriteZeroHit = false;
+                baseNameTable = 0;
             }
         }
 
@@ -383,7 +386,7 @@ public class PPU {
         int tileAddress = (patternTableNum << 12)|(tileNum << 4);
         for (int j = 0; j < 8; j++){
             int tempByte = MMU.readByte(tileAddress + j);
-            int tempByte2 = MMU.readByte(tileAddress + j + 8);;
+            int tempByte2 = MMU.readByte(tileAddress + j + 8);
             for (int i = 0; i < 8; i++){
                 int tempByte3 = (tempByte & 0x1)|((tempByte2 & 0x1)<<1)|(attribute << 2);
                 int paletteValue = palette[MMU.readByte(0x3F00+tempByte3) & 0x3F];
@@ -396,5 +399,131 @@ public class PPU {
             }
         }
         return tempMap;
+    }
+
+    // Draws a given scanline (to the framebuffer directly?)
+    public void drawLine(int x, int y){
+        boolean sprite0onLine = false;      // True if this line contains sprite0
+        int[] secondaryOAM = new int[32];    // Secondary OAM table
+
+        int[] bgBuffer = new int[256];
+        int[] spriteBuffer = new int[256];
+        boolean[] spriteBufferpriority = new boolean[256];
+
+        int spriteCount = 0;
+        // Step 1, Sprite check
+        for (int i = 0; i < 64; i++){
+            // Check if sprite is on the line
+            if (OAM[i*4] + 1 >= y && OAM[i*4] + 1 < (y+8)){
+                // Check if this is sprite0, used for sprite 0 hit later
+                if (i == 0){
+                    sprite0onLine = true;   // Sprite 0 is present
+                }
+                if (spriteCount < 8) {
+                    for (int j = 0; j < 4; j++) {
+                        secondaryOAM[spriteCount + j] = OAM[(i * 4) + j];
+                    }
+                    spriteCount++;          // Increment sprite counter
+                }
+                else{
+                    // Set overflow flag and break the loop
+                    spriteOverflow = true;
+                    break;
+                }
+            }
+        }
+        // Step 2 Sprite buffer
+        // Step 3 BG Buffer
+        int baseX = x;
+        int baseY = y;
+        int patternTable = backgroundTable ? 0x1000:0x0000;
+        for (int i = 0; i < 256; i++){
+            // Mask x and y
+            baseX = baseX & 0x1FF;
+            baseY = baseY % 480;
+            // Determine nametable region
+            int baseNameTable2 = 0x2000;
+            if (baseX >= 256){
+                baseNameTable2 += 0x400;
+                baseX -= 256;
+            }
+            if (baseY >= 240){
+                baseNameTable2 += 0x800;
+                baseY -= 240;
+            }
+            // Determine the tile to render from
+            int tileNum = (baseX/8) + ((baseY/8)*32);
+            // Determine which pixel of that tile to render from
+            int pixelX = baseX % 8;
+            int pixelY = baseY % 8;
+
+            // Get pixel data (specifically the palette data)
+            int tilePointer = MMU.readByte(baseNameTable2 + tileNum);    // Tile pointer
+            // I borrowed this code from the drawnametable0 method so here's a hack to make this work
+            int tileX = tileNum % 32;
+            int tileY = tileNum / 32;
+            int attributeByte = (baseNameTable2 + 0x2C0) + ((tileX/4) + ((tileY/4) * 8));
+            int cornerNum = (((tileX/2)%2) + (((tileY/2)%2)*2))*2;
+            int attribute = (MMU.readByte(attributeByte) >> cornerNum) & 0x3;
+
+            int paletteIndex = (attribute << 2)|MMU.readByte(patternTable + (tileNum << 4) + pixelY) >> (7 - pixelX)|
+                    (MMU.readByte(patternTable + (tileNum << 4) + (pixelY + 8)) >> (7 - pixelX)) << 1;
+            bgBuffer[i] = palette[paletteIndex];
+
+        }
+        // Step 4 combine and draw to frame buffer.
+    }
+    // Testing scanline bg renderer
+    public void bgScanLineTest(int x, int y, int screenY){
+        int[] bgBuffer = new int[256];
+        int baseX = x;
+        int baseY = y;
+        int patternTable = backgroundTable ? 0x1000:0x0000;
+        int drawX = baseX;
+        int drawY = baseY;
+        for (int i = 0; i < 256; i++){
+            drawX = baseX + i;
+            // Mask x and y
+            drawX = drawX & 0x1FF;
+            baseY = baseY % 480;
+            // Determine nametable region
+            int baseNameTable2 = 0x2000;
+            if (drawX >= 256){
+                baseNameTable2 += 0x400;
+                drawX -= 256;
+            }
+            if (baseY >= 240){
+                baseNameTable2 += 0x800;
+            }
+            // Determine the tile to render from
+            int tileNum = (drawX/8) + ((baseY/8)*32);
+            // Determine which pixel of that tile to render from
+            int pixelX = drawX % 8;
+            int pixelY = baseY % 8;
+
+            // Get pixel data (specifically the palette data)
+            int tilePointer = MMU.readByte(baseNameTable2 + tileNum);    // Tile pointer
+            // I borrowed this code from the drawnametable0 method so here's a hack to make this work
+            int tileX = tileNum % 32;
+            int tileY = tileNum / 32;
+            int attributeByte = (baseNameTable2 + 0x3C0) + ((tileX/4) + ((tileY/4) * 8));
+            int cornerNum = (((tileX/2)%2) + (((tileY/2)%2)*2))*2;
+            int attribute = (MMU.readByte(attributeByte) >> cornerNum) & 0x3;
+
+            int paletteIndex = (attribute << 2)|(MMU.readByte(patternTable + (tilePointer << 4) + pixelY) >> (7 - pixelX))&0x1|
+                    ((MMU.readByte(patternTable + (tilePointer << 4) + (pixelY + 8)) >> (7 - pixelX)) & 0x1) << 1;
+            if ((paletteIndex & 0x3) != 0){
+                bgBuffer[i] = palette[MMU.readByte(0x3F00 + paletteIndex)];
+            }
+        }
+        // draw to framebuffer
+        for (int i = 0; i < 256; i++){
+            if (bgBuffer[i] != 0) {
+                frameBuffer.drawPixel(i, screenY, bgBuffer[i]);
+            }
+            else{
+                frameBuffer.drawPixel(i, screenY, palette[MMU.readByte(0x3F00)]);
+            }
+        }
     }
 }
