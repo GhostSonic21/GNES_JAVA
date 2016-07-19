@@ -134,7 +134,6 @@ public class PPU {
                 lineCount = -1;
                 vBlank = false;
                 spriteZeroHit = false;
-                baseNameTable = 0;
             }
         }
 
@@ -223,6 +222,10 @@ public class PPU {
                 // Low byte
                 else{
                     PPUADDR = (PPUADDR & 0xFF00)|(data);
+                    // Loopy's doc states that writes to PPUADDR can affect nametables due to a shared internal register
+                    // This isn't accurate code, but Super Mario Bros. seems to do this inadvertently during V-Blank
+                    // TODO: Implement loopy's stuff more accurately.
+                    baseNameTable = (PPUADDR >> 10)&0x3;
 
                 }
                 // Toggle
