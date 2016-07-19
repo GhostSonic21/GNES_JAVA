@@ -53,7 +53,7 @@ public class CPU_MMU {
             // Implement as needed
 
             // Controller
-            if (address == 0x4016 || address == 4017){
+            if (address == 0x4016 || address == 0x4017){
                 returnData = controller.recieveData(address);
             }
         }
@@ -99,7 +99,7 @@ public class CPU_MMU {
             // APU and I/O Registers
             // Implement as needed
             // Controller
-            if (address == 0x4016 || address == 4017){
+            if (address == 0x4016 || address == 0x4017){
                 controller.sendData(address, data);
             }
             // OAM DMA
