@@ -501,7 +501,7 @@ public class PPU {
 
     private void renderLine(int y){
         for (int i = 0; i < 256; i++) {
-            frameBuffer.drawPixel(i, y, palette[MMU.readByte(0x3F00 + lineBuffer[i])]);
+            frameBuffer.drawPixel(i, y, palette[MMU.readByte(0x3F00 + lineBuffer[i]) & 0x3F]);
         }
     }
 }
