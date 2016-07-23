@@ -32,7 +32,8 @@ public class GNES_JAVA extends ApplicationAdapter {
 
         // Create Emulator Classes
         //NESCart = new Cartridge(Gdx.files.internal("./instr_test-v5/rom_singles/16-special.nes"));
-        NESCart = new Cartridge(Gdx.files.internal("DonkeyKong.nes"));
+        //NESCart = new Cartridge(Gdx.files.internal("DonkeyKong.nes"));
+        NESCart = Cartridge.getCartridge(Gdx.files.internal("SuperMarioBros.nes"));
         NESController = new Controller();
         NESPPUMMU = new PPU_MMU(NESCart);
         NESPPU = new PPU(NESPPUMMU);

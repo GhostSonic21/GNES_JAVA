@@ -16,7 +16,8 @@ public class Testers {
         //Cartridge tester = new Cartridge(new FileHandle("./instr_test-v5/rom_singles/03-immediate.nes"));
         //Cartridge tester = new Cartridge(new FileHandle("./instr_test-v5/rom_singles/13-rts.nes"));
         //Cartridge tester = new Cartridge(new FileHandle("./instr_test-v5/rom_singles/15-brk.nes"));
-        Cartridge tester = new Cartridge(new FileHandle("./DonkeyKong.nes"));
+        //Cartridge tester = new Cartridge(new FileHandle("./DonkeyKong.nes"));
+        Cartridge tester = Cartridge.getCartridge(new FileHandle("instr_test-v5/rom_singles/01-basics.nes"));
         PPU_MMU PPU_MMU = new PPU_MMU(tester);
         PPU PPU = new PPU(PPU_MMU);
         CPU_MMU MMU  = new CPU_MMU (tester, PPU, new Controller());

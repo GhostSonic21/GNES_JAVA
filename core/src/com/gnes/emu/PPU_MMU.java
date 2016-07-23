@@ -45,14 +45,13 @@ public class PPU_MMU {
             }
             case 0x2:{
                 // Map to VRAM
-                // TODO: Figure out how the nametable works
-                returnByte = VRAM[cartridge.nameTableMap(address)];
+                returnByte = cartridge.readNameTable(address, VRAM);
                 break;
             }
             case 0x3:{
                 // Part of this is just a mirror of VRAM, rest is palette ram indexes
                 if (address < 0x3F00){
-                    returnByte = VRAM[cartridge.nameTableMap(address-0x1000)];
+                    returnByte = cartridge.readNameTable(address-0x1000, VRAM);
                 }
                 else{
                     // Palette Mirroring. This is probably a hacky way to do it. I'm not sure what the proper way is.
@@ -78,19 +77,18 @@ public class PPU_MMU {
             case 0x0:
             case 0x1:{
                 // Map to CHR
-                cartridge.CHRWrite(address);
+                cartridge.CHRWrite(address, data);
                 break;
             }
             case 0x2:{
                 // Map to VRAM
-                // TODO: Figure out how the nametable works
-                VRAM[cartridge.nameTableMap(address)] = data & 0xFF;
+                cartridge.writeNameTable(address, VRAM, data & 0xFF);
                 break;
             }
             case 0x3:{
-                // Part of this is just a mirror of VRAM, rest is pallete ram indexes
+                // Part of this is just a mirror of VRAM, rest is palette ram indexes
                 if (address < 0x3F00){
-                    VRAM[cartridge.nameTableMap(address-0x1000)] = data & 0xFF;
+                    cartridge.writeNameTable(address-0x1000, VRAM, data & 0xFF);
                 }
                 else{
                     // Palette Mirroring. This is probably a hacky way to do it. I'm not sure what the proper way is.
