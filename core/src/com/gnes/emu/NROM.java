@@ -49,6 +49,7 @@ public class NROM extends Cartridge{
 
     // PRG read/write
     // Read(s)
+    @Override
     public int PRGRead(int address){
         int returnData = 0xFF;
         if (address >= 0x6000 && address <= 0x7FFF){
@@ -61,6 +62,7 @@ public class NROM extends Cartridge{
     }
 
     // Write(s)
+    @Override
     public void PRGWrite(int address, int data){
         // Since we're hard-coded to NROM for now, nothing is done on write except for ram.
         if (address >= 0x6000 && address <= 0x7FFF){
@@ -73,17 +75,20 @@ public class NROM extends Cartridge{
 
     // CHR read/write
     // Read(s)
+    @Override
     public int CHRRead(int address){
         return CHR_ROM[address];
     }
 
     // Write(s)
+    @Override
     public void CHRWrite(int address, int data){
         // TODO: I dunno what happens here so just return
         return;
     }
 
     // Nametable map
+    @Override
     public int readNameTable(int address, int[] VRAM){
         int VRAMAddress = 0;
         // Vertical mirroring
@@ -100,6 +105,7 @@ public class NROM extends Cartridge{
         return VRAM[VRAMAddress];
     }
 
+    @Override
     public void writeNameTable(int address, int[] VRAM, int data){
         int VRAMAddress = 0;
         // Vertical mirroring

@@ -45,6 +45,9 @@ public abstract class Cartridge {
             case 0:
                 returnCart = new NROM(romData);
                 break;
+            case 66:
+                returnCart = new GxROM(romData);
+                break;
             default:
                 returnCart = null;
                 break;
