@@ -25,6 +25,8 @@ public abstract class Cartridge {
 
     public abstract void writeNameTable (int address, int[] VRAM, int data);
 
+    public abstract boolean checkIRQ();
+
     // Returns a Cartridge object based on iNES header
     public static Cartridge getCartridge(FileHandle romHandle){
         byte[] romData = romHandle.readBytes();

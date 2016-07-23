@@ -122,6 +122,12 @@ public class NROM extends Cartridge{
         VRAM[VRAMAddress] = data;
     }
 
+    @Override
+    public boolean checkIRQ() {
+        // No IRQs
+        return false;
+    }
+
     // Code for nes test suites
     private void outputResult(){
         int charNum = 0x4;  // Starts at 0x6004

@@ -111,4 +111,10 @@ public class GxROM extends Cartridge {
         }
         VRAM[VRAMAddress] = data;
     }
+
+    @Override
+    public boolean checkIRQ() {
+        // No IRQs
+        return false;
+    }
 }
