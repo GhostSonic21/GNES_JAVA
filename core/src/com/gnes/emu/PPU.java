@@ -484,7 +484,7 @@ public class PPU {
                     spriteLineBuffer[byte3+j] = paletteIndex;
                     priorityValues[byte3+j] = (byte2 & 0x20) > 0;
                     // Sprite 0 hit check
-                    if (i == 0 && sprite0onLine && lineBuffer[byte3+j] != 0){
+                    if (i == 0 && sprite0onLine && lineBuffer[byte3+j] != 0 && (byte3+j) != 255){
                         // We're only here because a sprite was, check if a line pixel is
                         spriteZeroHit = true;   // hit
                     }
