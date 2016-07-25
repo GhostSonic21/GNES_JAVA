@@ -31,8 +31,7 @@ public class GNES_JAVA extends ApplicationAdapter {
         batch.setProjectionMatrix(mainCamera.combined);
 
         // Create Emulator Classes
-        //NESCart = new Cartridge(Gdx.files.internal("./instr_test-v5/rom_singles/16-special.nes"));
-        NESCart = new Cartridge(Gdx.files.internal("DonkeyKong.nes"));
+        NESCart = Cartridge.getCartridge(Gdx.files.internal("SuperMarioBros.nes"));
         NESController = new Controller();
         NESPPUMMU = new PPU_MMU(NESCart);
         NESPPU = new PPU(NESPPUMMU);
@@ -51,7 +50,7 @@ public class GNES_JAVA extends ApplicationAdapter {
             // Poll controller
             NESController.pollController();
             // Execute CPU
-            NESCPU.execInst(NESPPU.NMITriggered(), false);
+            NESCPU.execInst(NESPPU.NMITriggered(), NESCart.checkIRQ());
             // Get final CPU cycle count before triggering PPU step
             int cycles = NESCPU.getLastCycleCount() + NESMMU.getCycleAdditions();
             // Step the PPU
