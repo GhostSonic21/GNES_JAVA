@@ -134,6 +134,7 @@ public class PPU {
                 lineCount = -1;
                 vBlank = false;
                 spriteZeroHit = false;
+                spriteOverflow = false;
             }
         }
 
@@ -434,8 +435,6 @@ public class PPU {
         int[] secondaryOAM = new int[32];    // Secondary OAM table
         int[] spriteLineBuffer = new int[256];
         boolean[] priorityValues = new boolean[256];
-
-        spriteOverflow = false;
 
         for (int i = 0; i < 64; i++){
             // Check if sprite is on the line
