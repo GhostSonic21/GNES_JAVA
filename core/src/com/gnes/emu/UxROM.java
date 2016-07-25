@@ -1,56 +1,59 @@
 package com.gnes.emu;
 
 /**
- * Created by ghost_000 on 7/23/2016.
+ * Created by ghost_000 on 7/24/2016.
  */
-
-// GxROM is a simple mapper that supports up to 4 PRG and CHR banks
-
-public class GxROM extends Cartridge {
-    // Variables and classes and whatnot
+public class UxROM extends Cartridge {
+    // Variables classes etc.
     int PRGSize;
+    int PRGBanks;   // Keeps track of amount of banks
+    int bankSelect; // Keeps track of current PRG bank
     int CHRSize;
     byte[] PRGData;
     byte[] CHRData;
     int flags6;
     int flags7;
     int flags9;
-    int PRGBank = 0;
-    int CHRBank = 0;
 
-    public GxROM(byte[] romData){
-        // Define PRG and CHR size
+    // Constuctor
+    public UxROM(byte[] romData){
         PRGSize = 16384 * (romData[0x4] & 0xFF);
         CHRSize = 8192 * (romData[0x5] & 0xFF);
-
-        // Create their arrays
-        PRGData = new byte[PRGSize];
-        CHRData = new byte[CHRSize];
-
-        // Copy PRG and CHR data to their respective arrays
-
-        // PRG
-        for (int i = 0; i < PRGSize; i++){
-            PRGData[i] = romData[i+0x10];
-        }
-
-        // CHR
-        for (int i = 0; i < CHRSize; i++){
-            CHRData[i] = romData[i+0x10+PRGSize];
-        }
-
-        // Save the rest of the flags
         flags6 = romData[0x6] & 0xFF;
         flags7 = romData[0x7] & 0xFF;
         flags9 = romData[0x9] & 0xFF;
+
+        // Copy PRG Data
+        PRGData = new byte[PRGSize];
+        for (int i = 0; i < PRGSize; i++){
+            PRGData[i] = romData[i + 0x10];
+        }
+        PRGBanks = romData[0x4] & 0xFF;
+
+        // CHR Setup
+        if (CHRSize > 0){
+            System.out.printf("Error: UxROM should not have CHR Size specified");
+            System.exit(-1);
+        }
+        CHRSize = 0x2000;   // UxROM specieis 8KB of CHR RAM
+        CHRData = new byte[CHRSize];
     }
 
     @Override
     public int PRGRead(int address) {
-        int returnData = 0xff;
-        if (address >= 0x8000 && address <= 0xFFFF){
-            address &= 0x7FFF;
-            address |= (PRGBank << 15);
+        int returnData = 0xFF;
+        if (address >= 0x8000 && address <= 0xFFFF) {
+            int readBank;
+            // Read from selected bank
+            if (address < 0xC000) {
+                readBank = bankSelect;
+            }
+            // Always uses last bank
+            else {
+                readBank = PRGBanks - 1;
+            }
+            address &= 0x3FFF;
+            address |= (readBank << 14);
             returnData = PRGData[address] & 0xFF;
         }
         return returnData;
@@ -58,28 +61,27 @@ public class GxROM extends Cartridge {
 
     @Override
     public void PRGWrite(int address, int data) {
-        // One one register to write to
-        if (address >= 0x8000 && address <= 0xFFFF){
-            CHRBank = data & 0x3;
-            PRGBank = (data >> 4) & 0x3;
+        if (address > 0x8000 && address <= 0xFFFF){
+            bankSelect = data & 0xFF;
         }
     }
 
     @Override
     public int CHRRead(int address) {
         int returnData = 0xFF;
-        address |= (CHRBank << 13);
-        returnData = CHRData[address] & 0xFF;
+        returnData = CHRData[address] & 0xFF;  // 8KB maps pretty straight
         return returnData;
     }
 
     @Override
     public void CHRWrite(int address, int data) {
-        // Nothing done here
+        // CHR Ram should map straight if I'm right
+        CHRData[address] = (byte)data;
     }
 
     @Override
     public int readNameTable(int address, int[] VRAM) {
+        // Same as NROM
         int VRAMAddress = 0;
         // Vertical mirroring
         if ((flags6 & 0x1) > 0){
@@ -97,6 +99,7 @@ public class GxROM extends Cartridge {
 
     @Override
     public void writeNameTable(int address, int[] VRAM, int data) {
+        // Same as NROM
         int VRAMAddress = 0;
         // Vertical mirroring
         if ((flags6 & 0x1) > 0){

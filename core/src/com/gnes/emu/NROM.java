@@ -30,8 +30,8 @@ public class NROM extends Cartridge{
         flags9 = romFile[0x09];
 
         // Copy over data
-        PRGSize = 16384 * romFile[0x04];
-        CHRSize = 8192 * romFile[0x05];
+        PRGSize = 16384 * (romFile[0x04] & 0xFF);
+        CHRSize = 8192 * (romFile[0x05] & 0xFF);
 
         PRG_ROM = new byte[PRGSize];
         CHR_ROM = new byte[CHRSize];
