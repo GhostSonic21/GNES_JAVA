@@ -23,7 +23,7 @@ public class NROM extends Cartridge{
     // Contstrctor
     public NROM(byte[] romFile){
         // NROM Init
-        PRG_RAM = new byte[0x2000];  // Most NROM games don't use this, but some test roms do
+        //PRG_RAM = new byte[0x2000];  // Most NROM games don't use this, but some test roms do
         // Save flags
         flags6 = romFile[0x06];
         flags7 = romFile[0x07];
@@ -33,17 +33,23 @@ public class NROM extends Cartridge{
         PRGSize = 16384 * (romFile[0x04] & 0xFF);
         CHRSize = 8192 * (romFile[0x05] & 0xFF);
 
-        PRG_ROM = new byte[PRGSize];
-        CHR_ROM = new byte[CHRSize];
-
         // Copy PRG
+        PRG_ROM = new byte[PRGSize];
         for (int i = 0; i < PRGSize; i++){
             PRG_ROM[i] = romFile[i + 0x10];
         }
 
         // Copy CHR
-        for (int i = 0; i < CHRSize; i++){
-            CHR_ROM[i] = romFile[i + PRGSize + 0x10];
+        if (CHRSize > 0) {
+            CHR_ROM = new byte[CHRSize];
+            for (int i = 0; i < CHRSize; i++) {
+                CHR_ROM[i] = romFile[i + PRGSize + 0x10];
+            }
+        }
+        else{
+            // CHR RAM
+            CHRSize = 0x2000;
+            CHR_RAM = new byte[CHRSize];
         }
     }
 
@@ -77,13 +83,22 @@ public class NROM extends Cartridge{
     // Read(s)
     @Override
     public int CHRRead(int address){
-        return CHR_ROM[address];
+        int returnData = 0xFF;
+        if (CHR_RAM == null) {
+            returnData = CHR_ROM[address];
+        }
+        else{
+            returnData = CHR_RAM[address];
+        }
+        return returnData;
     }
 
     // Write(s)
     @Override
     public void CHRWrite(int address, int data){
-        // TODO: I dunno what happens here so just return
+        if (CHR_RAM != null){
+            CHR_RAM[address] = (byte)data;
+        }
         return;
     }
 
