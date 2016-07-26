@@ -82,6 +82,7 @@ public class PPU {
 
     boolean NMI = false;        // Internal flag to check if NMI should be triggered
     boolean newVblank = false;  // Mostly using this for speed control
+    boolean NMIGenerated = false; // Used for tracking if vblank should activate on register write
     Pixmap frameBuffer = new Pixmap(256, 240, Pixmap.Format.RGBA8888);    // Create RGB888 pixmap for the framebuffer
     int lineBuffer[] = new int[256];
     //Pixmap frameBuffer = null;
@@ -96,44 +97,48 @@ public class PPU {
     public void step(int cycles){
         // 1 CPU Cycle = 3 PPU cycles
         int PPUCycles = cycles * 3;
-        //int PPUCycles = cycles;
-        cycleCount += PPUCycles;
         // TODO: Actual rendering, Sprite 0, Other cycle-based stuff
         // Next line cycle
-        if (cycleCount > 340){
-            cycleCount -= 341;
-            //cycleCount = 0;
-            lineCount++;
-            if (lineCount < 240) {
-                // Zero out line buffer
-                for (int i = 0; i < 256; i++){
-                    lineBuffer[i] = 0;
+        while (PPUCycles-- > 0) {
+            cycleCount++;
+            if (cycleCount > 340) {
+                cycleCount -= 341;
+                //cycleCount = 0;
+                lineCount++;
+                if (lineCount < 240) {
+                    // Zero out line buffer
+                    for (int i = 0; i < 256; i++) {
+                        lineBuffer[i] = 0;
+                    }
+                    if (showBG) {
+                        drawBGScanLine(scrollX + ((baseNameTable & 0x1) > 0 ? 256 : 0),
+                                scrollY + lineCount + ((baseNameTable & 0x2) > 0 ? 240 : 0), lineCount);
+                    }
+                    if (showSprites) {
+                        drawSpriteLine(lineCount);
+                    }
+                    renderLine(lineCount);
                 }
-                if (showBG) {
-                    drawBGScanLine(scrollX + ((baseNameTable & 0x1) > 0 ? 256 : 0),
-                            scrollY + lineCount + ((baseNameTable & 0x2) > 0 ? 240 : 0), lineCount);
-                }
-                if (showSprites) {
-                    drawSpriteLine(lineCount);
-                }
-                renderLine(lineCount);
-            }
 
-            // Vblank trigger
-            if (lineCount == 241){
-                // Trigger NMI as soon as vblank reached
-                vBlank = true;
-                newVblank = true;
-                NMI = NMIGenerate;
-                // TODO: replace this rendering method
-                //drawNameTable0();   // Temporary way of rendering just so we can have some output
-                //drawSprites();      // Temp sprite draw
-            }
-            // Reset line count
-            if (lineCount > 260){
-                lineCount = -1;
-                vBlank = false;
-                spriteZeroHit = false;
+                // Vblank trigger
+                if (lineCount == 241) {
+                    // Trigger NMI as soon as vblank reached
+                    vBlank = true;
+                    newVblank = true;
+                    NMI = NMIGenerate;
+                    NMIGenerated = NMIGenerate;
+                    // TODO: replace this rendering method
+                    //drawNameTable0();   // Temporary way of rendering just so we can have some output
+                    //drawSprites();      // Temp sprite draw
+                }
+                // Reset line count
+                if (lineCount > 260) {
+                    lineCount = -1;
+                    vBlank = false;
+                    spriteZeroHit = false;
+                    spriteOverflow = false;
+                    NMIGenerated = false;   // Needs to be cleared after vblank
+                }
             }
         }
 
@@ -159,8 +164,12 @@ public class PPU {
                 PPUMasterSlave = (data & 0x40) > 0;
                 NMIGenerate = (data & 0x80) > 0;
                 // NMI triggered on register write if vBlank is in progress during this.
-                if(NMIGenerate && (lineCount > 240)){
+                // Apparently activation here is dependent on Vblank flag that can be disabled by reading $2002
+                // And only generates if NMI hasn't been generated before? I'm curious of NMI generation has an effect
+                // On the vBlank flag.
+                if(NMIGenerate && vBlank && !NMIGenerated){
                     NMI = true;
+                    NMIGenerated = true;
                 }
                 break;
             }
@@ -255,7 +264,7 @@ public class PPU {
                 returnByte = latch & 0x1F;  // First 5 bytes of latch are here for some reason
                 returnByte = returnByte|((spriteOverflow ? 1:0) << 5)|((spriteZeroHit ? 1:0) << 6)|
                         ((vBlank ? 1:0) << 7);
-                vBlank = false; //Cleared after a read apparently
+                vBlank = false;         //Cleared after a read apparently
                 scrollWrite = false;    // Apparently cleared on read
                 break;
             }
@@ -299,9 +308,7 @@ public class PPU {
 
     public boolean getNewVblank(){
         boolean returnData = newVblank;
-        if (newVblank){
-            newVblank = false;
-        }
+        newVblank = false;
         return returnData;
     }
 
@@ -434,8 +441,6 @@ public class PPU {
         int[] secondaryOAM = new int[32];    // Secondary OAM table
         int[] spriteLineBuffer = new int[256];
         boolean[] priorityValues = new boolean[256];
-
-        spriteOverflow = false;
 
         for (int i = 0; i < 64; i++){
             // Check if sprite is on the line
