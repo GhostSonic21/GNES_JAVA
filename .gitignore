@@ -72,3 +72,6 @@ Thumbs.db
 ## Leave out NES roms and the instr test I was using
 *.nes
 instr_test-v5/
+
+## Leave out TAS files
+*.tas
