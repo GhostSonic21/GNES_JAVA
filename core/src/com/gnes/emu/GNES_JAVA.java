@@ -10,7 +10,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 public class GNES_JAVA extends ApplicationAdapter {
 	SpriteBatch batch;
-	Texture img;
     OrthographicCamera mainCamera;
 
     Texture frameBuffer;

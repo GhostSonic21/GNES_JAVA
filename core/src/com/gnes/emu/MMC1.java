@@ -19,12 +19,12 @@ public class MMC1 extends Cartridge {
     private boolean CHRLarge;   // Set if CHR is above 256KiB (CHR Bank registers act different)
 
     // MMC1 registers
-    int control;
-    int CHRBank0;
-    int CHRBank1;
-    int PRGBank;
-    int serialClocks = 0; // Serial data tracker
-    int serialData = 0;
+    private int control;
+    private int CHRBank0;
+    private int CHRBank1;
+    private int PRGBank;
+    private int serialClocks = 0; // Serial data tracker
+    private int serialData = 0;
 
     public MMC1(byte[] romData){
         PRGSize = 16384 * (romData[0x4] & 0xFF);
