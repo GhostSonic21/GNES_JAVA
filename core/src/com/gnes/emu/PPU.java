@@ -22,7 +22,7 @@ public class PPU {
     private boolean VRAMInc = false;            // false add 1 per CPU read/write of PPUDATA, true add 32
     private boolean spriteTable = false;        // Pattern table for 8x8 sprites, ignored for 8x16. 0: $0000, 1: $1000
     private boolean backgroundTable = false;    // Background pattern table, 0: $0000, 1: $1000
-    private boolean spriteSize = false;         // False: 8x8, True: 8x16
+    private boolean tallSprite = false;         // False: 8x8, True: 8x16
     private boolean PPUMasterSlave = false;     // This definitely does something with background colors
     private boolean NMIGenerate = false;        // Generate NMI at start of Vertical Blank?
 
@@ -160,7 +160,7 @@ public class PPU {
                 VRAMInc = (data & 0x4) > 0;
                 spriteTable = (data & 0x8) > 0;
                 backgroundTable = (data & 0x10) > 0;
-                spriteSize = (data & 0x20) > 0;
+                tallSprite = (data & 0x20) > 0;
                 PPUMasterSlave = (data & 0x40) > 0;
                 NMIGenerate = (data & 0x80) > 0;
                 // NMI triggered on register write if vBlank is in progress during this.
@@ -441,10 +441,11 @@ public class PPU {
         int[] secondaryOAM = new int[32];    // Secondary OAM table
         int[] spriteLineBuffer = new int[256];
         boolean[] priorityValues = new boolean[256];
+        int spriteHeight = tallSprite ? 16:8;
 
         for (int i = 0; i < 64; i++){
             // Check if sprite is on the line
-            if (OAM[i*4] + 1 <= y && OAM[i*4] + 8 >= y){
+            if (OAM[i*4] + 1 <= y && OAM[i*4] + spriteHeight >= y){
                 // Check if this is sprite0, used for sprite 0 hit later
                 if (i == 0){
                     sprite0onLine = true;   // Sprite 0 is present
@@ -473,10 +474,20 @@ public class PPU {
             int byte3 = secondaryOAM[(i * 4) + 3];   // X-Position
 
             //int pixelX = 0;
-            int pixelY = ((byte2 & 0x80) > 0 ? 7-(y-byte0):y-byte0);
-
-            int patternTable = spriteTable ? 0x1000:0x0000;
-            int tilePointer = patternTable + (byte1 << 4); // TODO: 8x16
+            int pixelY = ((byte2 & 0x80) > 0 ? (spriteHeight-1)-(y-byte0):y-byte0);
+            int patternTable = 0;
+            int tilePointer = 0;
+            if (!tallSprite) {
+                patternTable = spriteTable ? 0x1000 : 0x0000;
+                tilePointer = patternTable + (byte1 << 4);
+            }
+            // Pattern table for 8x16 sprite comes from the 1st byte
+            else{
+                patternTable = (byte1 & 0x1) << 12;
+                tilePointer = patternTable + (((byte1 & 0xFE)|(pixelY > 7 ? 1:0)) << 4);
+            }
+            // Bit of a hack. Masks the pixelY incase it's an 8x16, so that rendering doesn't bug
+            pixelY = pixelY & 0x7;
             int tileByte0 = MMU.readByte(tilePointer + pixelY);
             int tileByte1 = MMU.readByte(tilePointer + pixelY + 8);
 
