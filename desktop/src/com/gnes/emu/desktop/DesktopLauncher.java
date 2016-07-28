@@ -41,8 +41,7 @@ public class DesktopLauncher {
             }
         }
 
-        // Create cartridge object and start the LibGDX Program
-        Cartridge nesCart = Cartridge.getCartridge(new FileHandle(romPath));
-		new LwjglApplication(new GNES_JAVA(nesCart), config);
+        // Start LibGDX Program
+		new LwjglApplication(new GNES_JAVA(romPath), config);
 	}
 }

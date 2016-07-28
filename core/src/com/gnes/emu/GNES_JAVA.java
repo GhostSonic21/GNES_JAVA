@@ -25,8 +25,8 @@ public class GNES_JAVA extends ApplicationAdapter {
     public GNES_JAVA(){
         // Blank constructor
     }
-    public GNES_JAVA(Cartridge NESCart){
-        this.NESCart = NESCart;
+    public GNES_JAVA(String romPath){
+        NESCart = Cartridge.getCartridge(new FileHandle(romPath));
     }
 
     // LIBGdx Methods

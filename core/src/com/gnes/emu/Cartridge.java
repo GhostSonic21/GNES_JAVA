@@ -37,7 +37,7 @@ public abstract class Cartridge {
             nes += (char)romData[i];
         }
         if (!nes.contains("NES")){
-            System.out.printf("Can't find NES Header. Probably check out why.\n");
+            System.err.printf("Can't find NES Header. Probably check out why.\n");
         }
 
         int mapperNumber = ((romData[0x06] >> 4) & 0xF)|(romData[0x07] & 0xF0);
@@ -62,7 +62,7 @@ public abstract class Cartridge {
         }
 
         if (returnCart == null){
-            System.out.printf("Unsupported mapper #%d\n", mapperNumber);
+            System.err.printf("Unsupported mapper #%d\n", mapperNumber);
             System.exit(-1);
         }
 

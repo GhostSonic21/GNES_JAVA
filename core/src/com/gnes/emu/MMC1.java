@@ -79,12 +79,12 @@ public class MMC1 extends Cartridge {
 
         // Unsupported modes, exit for now until I figure it out
         if (PRGLarge){
-            System.out.printf("ERROR: >256k PRG not supported");
+            System.err.printf("ERROR: >256k PRG not supported");
             System.exit(-1);
         }
         if (PRGRAMSize > 0x2000){
             // Since I'm not sure how larger PRG RAM works right now
-            System.out.printf("ERROR: >8K PRG RAM not currently supported.");
+            System.err.printf("ERROR: >8K PRG RAM not currently supported.");
             System.exit(-1);
         }
         control |= 0xC;
