@@ -25,6 +25,7 @@ public class DesktopLauncher {
         // File chooser if all else
         else {
             JFileChooser chooser = new JFileChooser();
+            chooser.setDialogTitle("Select NES ROM File");
             FileNameExtensionFilter filter = new FileNameExtensionFilter("NES Rom Files (*.nes)", "nes");
             chooser.setFileFilter(filter);
             int fileChooserReturn = chooser.showOpenDialog(null);
