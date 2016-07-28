@@ -21,8 +21,17 @@ public class GNES_JAVA extends ApplicationAdapter {
     PPU NESPPU;
     CPU_MMU NESMMU;
     CPU NESCPU;
-	
-	@Override
+
+    // Constructors
+    public GNES_JAVA(){
+        // Blank constructor
+    }
+    public GNES_JAVA(Cartridge NESCart){
+        this.NESCart = NESCart;
+    }
+
+    // LIBGdx Methods
+    @Override
 	public void create () {
 		batch = new SpriteBatch();
         mainCamera = new OrthographicCamera(256, 240);
@@ -31,14 +40,16 @@ public class GNES_JAVA extends ApplicationAdapter {
         batch.setProjectionMatrix(mainCamera.combined);
 
         // Create Emulator Classes
-        NESCart = Cartridge.getCartridge(Gdx.files.internal("SuperMarioBros.nes"));
+        // If NESCart wasn't created, try loading some generic rom file
+        if (NESCart == null) {
+            NESCart = Cartridge.getCartridge(Gdx.files.internal("SuperMarioBros.nes"));
+        }
         NESController = new Controller();
         NESPPUMMU = new PPU_MMU(NESCart);
         NESPPU = new PPU(NESPPUMMU);
         NESMMU = new CPU_MMU(NESCart, NESPPU, NESController);
         NESCPU = new CPU(NESMMU);
         NESCPU.resetNES();
-        //img = new Texture("badlogic.jpg");
 	}
 
 	@Override
@@ -63,11 +74,8 @@ public class GNES_JAVA extends ApplicationAdapter {
         batch.draw(frameBuffer, 0, 0, 256, 240);
         batch.end();
         frameBuffer.dispose();
-		/*batch.begin();
-		batch.draw(img, 0, 0);
-		batch.end();*/
 	}
-	
+
 	@Override
 	public void dispose () {
 		batch.dispose();
