@@ -47,6 +47,9 @@ public abstract class Cartridge {
             case 0:
                 returnCart = new NROM(romData);
                 break;
+            case 1:
+                returnCart = new MMC1(romData);
+                break;
             case 2:
                 returnCart = new UxROM(romData);
                 break;
