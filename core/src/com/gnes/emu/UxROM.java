@@ -5,15 +5,15 @@ package com.gnes.emu;
  */
 public class UxROM extends Cartridge {
     // Variables classes etc.
-    int PRGSize;
-    int PRGBanks;   // Keeps track of amount of banks
-    int bankSelect; // Keeps track of current PRG bank
-    int CHRSize;
-    byte[] PRGData;
-    byte[] CHRData;
-    int flags6;
-    int flags7;
-    int flags9;
+    private int PRGSize;
+    private int PRGBanks;   // Keeps track of amount of banks
+    private int bankSelect; // Keeps track of current PRG bank
+    private int CHRSize;
+    private byte[] PRGData;
+    private byte[] CHRData;
+    private int flags6;
+    private int flags7;
+    private int flags9;
 
     // Constuctor
     public UxROM(byte[] romData){

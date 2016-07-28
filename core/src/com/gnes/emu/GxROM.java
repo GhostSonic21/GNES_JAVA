@@ -8,15 +8,15 @@ package com.gnes.emu;
 
 public class GxROM extends Cartridge {
     // Variables and classes and whatnot
-    int PRGSize;
-    int CHRSize;
-    byte[] PRGData;
-    byte[] CHRData;
-    int flags6;
-    int flags7;
-    int flags9;
-    int PRGBank = 0;
-    int CHRBank = 0;
+    private int PRGSize;
+    private int CHRSize;
+    private byte[] PRGData;
+    private byte[] CHRData;
+    private int flags6;
+    private int flags7;
+    private int flags9;
+    private int PRGBank = 0;
+    private int CHRBank = 0;
 
     public GxROM(byte[] romData){
         // Define PRG and CHR size

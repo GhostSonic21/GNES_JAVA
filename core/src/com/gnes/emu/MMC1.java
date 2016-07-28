@@ -5,18 +5,18 @@ package com.gnes.emu;
  */
 public class MMC1 extends Cartridge {
     // Variables classes etc.
-    int PRGSize;
-    int PRGBanks;
-    int PRGRAMSize;
-    int CHRSize;
-    byte[] PRGData;
-    byte[] CHRData;
-    byte[] PRGRAMData;
-    int flags6;
-    int flags7;
-    boolean CHRRAM;     // Set if cart uses CHR RAM
-    boolean PRGLarge;   // Set if PRG is above 512KiB (CHR Bank registers act different)
-    boolean CHRLarge;   // Set if CHR is above 256KiB (CHR Bank registers act different)
+    private int PRGSize;
+    private int PRGBanks;
+    private int PRGRAMSize;
+    private int CHRSize;
+    private byte[] PRGData;
+    private byte[] CHRData;
+    private byte[] PRGRAMData;
+    private int flags6;
+    private int flags7;
+    private boolean CHRRAM;     // Set if cart uses CHR RAM
+    private boolean PRGLarge;   // Set if PRG is above 512KiB (CHR Bank registers act different)
+    private boolean CHRLarge;   // Set if CHR is above 256KiB (CHR Bank registers act different)
 
     // MMC1 registers
     int control;
