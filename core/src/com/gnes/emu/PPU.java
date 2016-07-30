@@ -60,6 +60,11 @@ public class PPU {
     int PPUDataReadBuffer = 0x00;
 
 
+    // Loopy's scoll values
+    int loopyV = 0;         // Current VRAM address (15-bit)
+    int loopyT = 0;         // Temporary VRAM address (15-bit)
+    int loopyX = 0;         // Fine X Scroll (3-bit)
+    boolean loopyW = false; // Write toggle
 
 
 
@@ -97,11 +102,41 @@ public class PPU {
     public void step(int cycles){
         // 1 CPU Cycle = 3 PPU cycles
         int PPUCycles = cycles * 3;
-        // TODO: Actual rendering, Sprite 0, Other cycle-based stuff
+        // TODO: Other cycle-based stuff
         // Next line cycle
         while (PPUCycles-- > 0) {
             cycleCount++;
-            if (cycleCount > 340) {
+            if (cycleCount == 256){
+                if (showBG || showSprites) {
+                    incrementLoopyY();
+                }
+            }
+            else if (cycleCount == 257){
+                // Copy horizontal bits each scanline
+                if (showBG || showSprites) {
+                    loopyV = (loopyV & 0xFBE0) | (loopyT & 0x041F);
+                }
+            }
+            else if (cycleCount == 304){
+                // Copy vertical bits during pre-render line
+                // Copying is meant to be partially done, so this is inaccruate
+                if ((showBG || showSprites) && lineCount == -1) {
+                    loopyV = (loopyV & 0x41F)|(loopyT & 0xFBE0);
+                    //loopyV = loopyT;
+                }
+            }
+            else if (cycleCount == 328){
+                // Hacky all-at-once inaccurate loopyX increment
+                // Dunno if this is even the right amount?
+                // Actually unsure how this works, it's glitchy right now so skip
+                /*
+                if (showBG || showSprites) {
+                    for (int i = 0; i < 32; i++) {
+                        //incrementLoopyX();
+                    }
+                }*/
+            }
+            else if (cycleCount > 340) {
                 cycleCount -= 341;
                 //cycleCount = 0;
                 lineCount++;
@@ -110,9 +145,33 @@ public class PPU {
                     for (int i = 0; i < 256; i++) {
                         lineBuffer[i] = 0;
                     }
-                    if (showBG) {
+                    // Attempt with loopy's data
+                    /*if (showBG) {
                         drawBGScanLine(scrollX + ((baseNameTable & 0x1) > 0 ? 256 : 0),
                                 scrollY + lineCount + ((baseNameTable & 0x2) > 0 ? 240 : 0), lineCount);
+                    }
+                    if (showSprites) {
+                        drawSpriteLine(lineCount);
+                    }*/
+                    if (showBG) {
+                        //boolean baseNameTableX = (loopyV & 0X400) == 0X400;
+                        boolean baseNameTableX = (loopyV & 0x400) == 0x400;
+                        boolean baseNameTableY = (loopyV & 0x800) == 0x800;
+                        //boolean baseNameTableX = (baseNameTable & 0x1) == 0x1;
+                        //boolean baseNameTableY = (baseNameTable & 0x2) == 0x2;
+                        int loopyXscroll = (((loopyV & 0x1F) << 3)|loopyX) + ((baseNameTableX) ? 256 : 0);
+                        int loopyYscroll = (((loopyV >> 12) & 0x7)|(((loopyV >> 5) & 0x7) << 3)|
+                                (((loopyV >> 8) & 0x3) << 6)) + (baseNameTableY ? 240:0);
+                        int oldScrollY = (scrollY + lineCount + ((baseNameTable & 0x2) == 0x2 ? 240:0)) % 480;
+
+                        if (oldScrollY != loopyYscroll && (oldScrollY - loopyYscroll) > 2){
+                            //System.err.printf("??? Old scroll: %d New Scroll: %d\n", oldScrollY, loopyYscroll);
+                        }
+                        /*else if (oldScrollY == loopyYscroll){
+                            System.out.printf("??? Scroll: %d\n", oldScrollY);
+                        }*/
+
+                        drawBGScanLine(loopyXscroll, loopyYscroll, lineCount);
                     }
                     if (showSprites) {
                         drawSpriteLine(lineCount);
@@ -171,6 +230,8 @@ public class PPU {
                     NMI = true;
                     NMIGenerated = true;
                 }
+                // Loopy write
+                loopyT = (loopyT & 0xF3FF)|(baseNameTable << 10);
                 break;
             }
             // PPUMASK
@@ -210,23 +271,40 @@ public class PPU {
             case 0x5:{
                 // Write (x2)
                 // X
-                if (!scrollWrite) {
+                if (!loopyW) {
                     scrollX = data & 0xff;
+
+                    // Loopy write
+                    loopyT = (loopyT & 0xFFE0)|((scrollX >> 3)&0x1F);
+                    loopyX = scrollX & 0x7;
                 }
                 // Y
                 else{
                     scrollY = data & 0xff;
+
+                    // Loopy write
+                    // There's like 3 parts to this, so I'll split it for readability's sake
+                    int part1 = scrollY & 0x7;
+                    int part2 = (scrollY >> 3) & 0x7;
+                    int part3 = (scrollY >> 6) & 0x3;
+                    // 0x8C1F sounds random, but I'm just masking off the bits they're supposed to go
+                    // Hopefully this is the right way of doing this
+                    loopyT = (loopyT & 0x8C1F)|(part1 << 12)|(part2 << 5)|(part3 << 8);
                 }
                 // Togle scrollWrite
-                scrollWrite = !scrollWrite;
+                loopyW = !loopyW;
                 break;
             }
             // PPUADDR
             case 0x6:{
                 // Write (2)
                 // High byte
-                if (!scrollWrite){
+                if (!loopyW){
                     PPUADDR = (PPUADDR & 0x00FF)|(data << 8);
+
+                    // Loopy write
+                    int ADDRData = data & 0x3F;
+                    loopyT = (loopyT & 0x00FF) | (ADDRData << 8);
                 }
                 // Low byte
                 else{
@@ -236,15 +314,22 @@ public class PPU {
                     // TODO: Implement loopy's stuff more accurately.
                     baseNameTable = (PPUADDR >> 10)&0x3;
 
+                    // Loopy write
+                    int ADDRData = data & 0xFF;
+                    loopyT = (loopyT & 0xFF00)|(ADDRData);
+                    loopyV = loopyT;    // Apply temp to current on this write
                 }
                 // Toggle
-                scrollWrite = !scrollWrite;
+                loopyW = !loopyW;
                 break;
             }
             case 0x7:{
                 // Both
                 MMU.writeByte(PPUADDR, data);
                 PPUADDR = (PPUADDR + (VRAMInc ? 32:1)) & 0xFFFF;
+
+                // Loopy Increment
+                loopyV = (loopyV + (VRAMInc ? 32:1)) & 0xFFFF;
                 break;
             }
             // OAM
@@ -258,7 +343,6 @@ public class PPU {
 
     public int readRegister(int address){
         int returnByte = latch;
-        // TODO: Proper read implementation
         switch (address){
             case 0x2:{
                 returnByte = latch & 0x1F;  // First 5 bytes of latch are here for some reason
@@ -266,6 +350,9 @@ public class PPU {
                         ((vBlank ? 1:0) << 7);
                 vBlank = false;         //Cleared after a read apparently
                 scrollWrite = false;    // Apparently cleared on read
+
+                // Loopy read
+                loopyW = false;
                 break;
             }
             case 0x4:{
@@ -286,6 +373,9 @@ public class PPU {
                 }
                 // Incremented all the same
                 PPUADDR = (PPUADDR + (VRAMInc ? 32:1)) & 0xFFFF;
+
+                // Loopy Increment
+                loopyV = (loopyV + (VRAMInc ? 32:1)) & 0xFFFF;
                 break;
             }
         }
@@ -518,6 +608,40 @@ public class PPU {
     private void renderLine(int y){
         for (int i = 0; i < 256; i++) {
             frameBuffer.drawPixel(i, y, palette[MMU.readByte(0x3F00 + lineBuffer[i]) & 0x3F]);
+        }
+    }
+
+    private void incrementLoopyY(){
+        // Loopy increment Y
+        // From the NESDev psuedocode
+        if ((loopyV & 0x7000) != 0x7000){
+            loopyV = (loopyV + 0x1000) & 0xFFFF;
+        }
+        else{
+            loopyV = (loopyV & ~0x7000) & 0xFFFF;
+            int y = (loopyV & 0x03E0) >> 5;
+            if (y == 29){
+                y = 0;
+                loopyV = (loopyV ^ 0x800) & 0xFFFF;
+            }
+            else if (y == 31){
+                y = 0;
+            }
+            else{
+                y += 1;
+            }
+            loopyV = ((loopyV & ~0x03E0) & 0xFFFF)| (y << 5);
+        }
+    }
+
+    private void incrementLoopyX(){
+        // Coarse X Increment from nesdev psuedocode
+        if ((loopyV & 0x001F) == 31){
+            loopyV = (loopyV & ~0x001F) & 0xFFFF;
+            loopyV = (loopyV ^ 0x0400) & 0xFFFF;
+        }
+        else{
+            loopyV = (loopyV + 1) & 0xFFFF;
         }
     }
 }
