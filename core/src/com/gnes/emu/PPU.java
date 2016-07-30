@@ -107,13 +107,13 @@ public class PPU {
         while (PPUCycles-- > 0) {
             cycleCount++;
             if (cycleCount == 256){
-                if (showBG || showSprites) {
+                if ((showBG || showSprites) && lineCount < 240) {
                     incrementLoopyY();
                 }
             }
             else if (cycleCount == 257){
                 // Copy horizontal bits each scanline
-                if (showBG || showSprites) {
+                if ((showBG || showSprites) && lineCount < 240) {
                     loopyV = (loopyV & 0xFBE0) | (loopyT & 0x041F);
                 }
             }
@@ -325,7 +325,7 @@ public class PPU {
             }
             case 0x7:{
                 // Both
-                MMU.writeByte(PPUADDR, data);
+                MMU.writeByte(loopyV, data);
                 PPUADDR = (PPUADDR + (VRAMInc ? 32:1)) & 0xFFFF;
 
                 // Loopy Increment
@@ -361,13 +361,13 @@ public class PPU {
             }
             case 0x7:{
                 // Regions before palette return from a buffer that's only updated on reads
-                if (PPUADDR < 0x3F00){
+                if (loopyV < 0x3F00){
                     returnByte = PPUDataReadBuffer;
-                    PPUDataReadBuffer = MMU.readByte(PPUADDR);
+                    PPUDataReadBuffer = MMU.readByte(loopyV);
                 }
                 // Palette data comes directly however
                 else {
-                    returnByte = MMU.readByte(PPUADDR);
+                    returnByte = MMU.readByte(loopyV);
                     // Buffer contains mirrored nametable byte instead
                     PPUDataReadBuffer = MMU.readByte(address & 0x2F1F);
                 }
