@@ -47,20 +47,11 @@ public class PPU {
     // OAM Address/Data
     private int OAMADDR = 0x00;                 // OAM Address to write an OAM Byte to
 
-    // PPUScroll
-    private int scrollX = 0x00;                 // 8-Bit scroll register
-    private int scrollY = 0x00;                 // Shit apparently gets weird when this is between 240 and 255
-    private boolean scrollWrite = false;        // False: write to X, True: write to Y. This flips every PPUSCROLL write
-
-    // PPUADDR and PPUDATA
-    private int PPUADDR = 0x0000;               // The address of PPUData to write when PPUData recieves data
-    private boolean PPUADDRToggle = false;      // false: Upper byte, true: lower. Toggles on write
-
     // PPUData read buffer
     int PPUDataReadBuffer = 0x00;
 
 
-    // Loopy's scoll values
+    // Loopy's scroll registers
     int loopyV = 0;         // Current VRAM address (15-bit)
     int loopyT = 0;         // Temporary VRAM address (15-bit)
     int loopyX = 0;         // Fine X Scroll (3-bit)
@@ -125,17 +116,14 @@ public class PPU {
                     //loopyV = loopyT;
                 }
             }
+            /* Probably don't need this for now since scanlies are rendered all at once
             else if (cycleCount == 328){
-                // Hacky all-at-once inaccurate loopyX increment
-                // Dunno if this is even the right amount?
-                // Actually unsure how this works, it's glitchy right now so skip
-                /*
                 if (showBG || showSprites) {
                     for (int i = 0; i < 32; i++) {
                         //incrementLoopyX();
                     }
-                }*/
-            }
+                }
+            }*/
             else if (cycleCount > 340) {
                 cycleCount -= 341;
                 //cycleCount = 0;
@@ -146,31 +134,12 @@ public class PPU {
                         lineBuffer[i] = 0;
                     }
                     // Attempt with loopy's data
-                    /*if (showBG) {
-                        drawBGScanLine(scrollX + ((baseNameTable & 0x1) > 0 ? 256 : 0),
-                                scrollY + lineCount + ((baseNameTable & 0x2) > 0 ? 240 : 0), lineCount);
-                    }
-                    if (showSprites) {
-                        drawSpriteLine(lineCount);
-                    }*/
                     if (showBG) {
-                        //boolean baseNameTableX = (loopyV & 0X400) == 0X400;
                         boolean baseNameTableX = (loopyV & 0x400) == 0x400;
                         boolean baseNameTableY = (loopyV & 0x800) == 0x800;
-                        //boolean baseNameTableX = (baseNameTable & 0x1) == 0x1;
-                        //boolean baseNameTableY = (baseNameTable & 0x2) == 0x2;
                         int loopyXscroll = (((loopyV & 0x1F) << 3)|loopyX) + ((baseNameTableX) ? 256 : 0);
                         int loopyYscroll = (((loopyV >> 12) & 0x7)|(((loopyV >> 5) & 0x7) << 3)|
                                 (((loopyV >> 8) & 0x3) << 6)) + (baseNameTableY ? 240:0);
-                        int oldScrollY = (scrollY + lineCount + ((baseNameTable & 0x2) == 0x2 ? 240:0)) % 480;
-
-                        if (oldScrollY != loopyYscroll && (oldScrollY - loopyYscroll) > 2){
-                            //System.err.printf("??? Old scroll: %d New Scroll: %d\n", oldScrollY, loopyYscroll);
-                        }
-                        /*else if (oldScrollY == loopyYscroll){
-                            System.out.printf("??? Scroll: %d\n", oldScrollY);
-                        }*/
-
                         drawBGScanLine(loopyXscroll, loopyYscroll, lineCount);
                     }
                     if (showSprites) {
@@ -272,7 +241,8 @@ public class PPU {
                 // Write (x2)
                 // X
                 if (!loopyW) {
-                    scrollX = data & 0xff;
+                    // Data in
+                    int scrollX = data & 0xff;
 
                     // Loopy write
                     loopyT = (loopyT & 0xFFE0)|((scrollX >> 3)&0x1F);
@@ -280,7 +250,8 @@ public class PPU {
                 }
                 // Y
                 else{
-                    scrollY = data & 0xff;
+                    // Data in
+                    int scrollY = data & 0xff;
 
                     // Loopy write
                     // There's like 3 parts to this, so I'll split it for readability's sake
@@ -300,20 +271,12 @@ public class PPU {
                 // Write (2)
                 // High byte
                 if (!loopyW){
-                    PPUADDR = (PPUADDR & 0x00FF)|(data << 8);
-
                     // Loopy write
                     int ADDRData = data & 0x3F;
                     loopyT = (loopyT & 0x00FF) | (ADDRData << 8);
                 }
                 // Low byte
                 else{
-                    PPUADDR = (PPUADDR & 0xFF00)|(data);
-                    // Loopy's doc states that writes to PPUADDR can affect nametables due to a shared internal register
-                    // This isn't accurate code, but Super Mario Bros. seems to do this inadvertently during V-Blank
-                    // TODO: Implement loopy's stuff more accurately.
-                    baseNameTable = (PPUADDR >> 10)&0x3;
-
                     // Loopy write
                     int ADDRData = data & 0xFF;
                     loopyT = (loopyT & 0xFF00)|(ADDRData);
@@ -326,7 +289,6 @@ public class PPU {
             case 0x7:{
                 // Both
                 MMU.writeByte(loopyV, data);
-                PPUADDR = (PPUADDR + (VRAMInc ? 32:1)) & 0xFFFF;
 
                 // Loopy Increment
                 loopyV = (loopyV + (VRAMInc ? 32:1)) & 0xFFFF;
@@ -349,10 +311,9 @@ public class PPU {
                 returnByte = returnByte|((spriteOverflow ? 1:0) << 5)|((spriteZeroHit ? 1:0) << 6)|
                         ((vBlank ? 1:0) << 7);
                 vBlank = false;         //Cleared after a read apparently
-                scrollWrite = false;    // Apparently cleared on read
 
                 // Loopy read
-                loopyW = false;
+                loopyW = false;         // Apparently cleared on write
                 break;
             }
             case 0x4:{
@@ -371,9 +332,6 @@ public class PPU {
                     // Buffer contains mirrored nametable byte instead
                     PPUDataReadBuffer = MMU.readByte(address & 0x2F1F);
                 }
-                // Incremented all the same
-                PPUADDR = (PPUADDR + (VRAMInc ? 32:1)) & 0xFFFF;
-
                 // Loopy Increment
                 loopyV = (loopyV + (VRAMInc ? 32:1)) & 0xFFFF;
                 break;
