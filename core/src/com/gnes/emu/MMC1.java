@@ -218,7 +218,7 @@ public class MMC1 extends Cartridge {
         }
         else{
             if (CHRLarge){
-                CHRBank = (CHRBank0 >> 1) & 0x7;
+                CHRBank = (CHRBank0 >> 1) & 0xF;
             }
             else{
                 CHRBank = 0;
