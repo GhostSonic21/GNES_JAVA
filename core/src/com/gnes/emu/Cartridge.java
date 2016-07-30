@@ -53,6 +53,9 @@ public abstract class Cartridge {
             case 2:
                 returnCart = new UxROM(romData);
                 break;
+            case 3:
+                returnCart = new CNROM(romData);
+                break;
             case 66:
                 returnCart = new GxROM(romData);
                 break;
