@@ -477,7 +477,7 @@ public class PPU {
 
             int paletteIndex = (attribute << 2)|(MMU.readByte(patternTable + (tilePointer << 4) + pixelY) >> (7 - pixelX))&0x1|
                     ((MMU.readByte(patternTable + (tilePointer << 4) + (pixelY + 8)) >> (7 - pixelX)) & 0x1) << 1;
-            if ((paletteIndex & 0x3) != 0){
+            if ((paletteIndex & 0x3) != 0 && !(!showBGLeft && i < 8)){
                 lineBuffer[i] = paletteIndex;
             }
         }
@@ -543,8 +543,9 @@ public class PPU {
                 int pixelX = ((byte2 & 0x40) > 0 ? (7-j):(j));
                 int paletteIndex = ((tileByte0 >> (7-pixelX))&0x1)|(((tileByte1 >> (7-pixelX))&0x1)<<1)|
                         ((0x4|(byte2&0x3)) << 2);
-                //int paletteValue = MMU.readByte(0x3F00 + paletteIndex);
-                if ((paletteIndex & 0x3) != 0 && (byte3+j) < 256 && spriteLineBuffer[byte3+j] == 0) {
+
+                if ((paletteIndex & 0x3) != 0 && (byte3+j) < 256 && spriteLineBuffer[byte3+j] == 0
+                        && !(!showSpriteLeft && (byte3+j) < 8)) {
                     spriteLineBuffer[byte3+j] = paletteIndex;
                     priorityValues[byte3+j] = (byte2 & 0x20) > 0;
                     // Sprite 0 hit check
@@ -555,9 +556,9 @@ public class PPU {
                 }
             }
         }
-        // Draw to framebuffer for testing
+        // Draw to linebuffer
         for (int i = 0; i < 256; i++){
-            if (spriteLineBuffer[i] != 0 && (lineBuffer[i] == 0 || !priorityValues[i])) {
+            if (spriteLineBuffer[i] != 0 && (lineBuffer[i] == 0 || !priorityValues[i])){
                 lineBuffer[i] = spriteLineBuffer[i];
             }
         }
