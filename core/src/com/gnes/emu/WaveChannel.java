@@ -11,4 +11,5 @@ public interface WaveChannel{
     void writeData(int address, int data);
     int[] getOutput();
     boolean getBufferFilled(); // Probably change this
+    void enabled(boolean enabled);
 }

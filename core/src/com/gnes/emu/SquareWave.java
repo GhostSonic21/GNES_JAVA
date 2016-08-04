@@ -5,6 +5,7 @@ package com.gnes.emu;
  */
 public class SquareWave implements WaveChannel{
     // Registers
+    private boolean enabled;
     private int duty;
     private boolean lengthHalt;
     private boolean constantVol;
@@ -17,8 +18,9 @@ public class SquareWave implements WaveChannel{
 
     // Envelope stuff?
     private boolean envelopeStart;  // Envelope start flag
-    //private int envDivider;
+    private int envDivider;
     private int envDecayVal;
+    private int envelopeOutput;
 
     // Sweep bs
     private boolean sweepEnable;
@@ -65,21 +67,12 @@ public class SquareWave implements WaveChannel{
             sequencerPointer = (sequencerPointer + 1) & 0x7;
         }
 
-        // ???
-        // I'm not in the mood for this
-        constantVol = true; // Get rid of this
-        outputVol = 0;
-        if (!constantVol){
-            //
-        }
-        else{
-            outputVol = volume;
-        }
 
+        outputVol = envelopeOutput;
         // 3 Gates
         // Sweep?
         // I dunno how to handle this so placeholder
-        if (sweepOverflow){
+        if (sweepForcingSilence()){
             //sweepOverflow = false;
             outputVol = 0;
         }
@@ -91,14 +84,8 @@ public class SquareWave implements WaveChannel{
         if (lengthCounter == 0) {
             outputVol = 0;
         }
-        // ???
-
-        if (timerLoad < 8){
-            outputVol = 0;
-        }
 
         output[someOutputCounter] = outputVol;
-        //someOutputCounter = (someOutputCounter + 1) % 1024;
         someOutputCounter++;
         if (someOutputCounter == 4096){
             bufferFilled = true;
@@ -109,13 +96,35 @@ public class SquareWave implements WaveChannel{
     @Override
     public void envelopeTick(){
         // Tick envelope out into the mixer
-        if (!envelopeStart){
-            // Clock the divider?
+        // ???
+        // I'm not in the mood for this
+        if (!envelopeStart) {
+            // Clock divider
+            if (envDivider > 0) {
+                envDivider--;
+            }
+            else {
+                envDivider = volume + 1;
+                // Clock decay
+                if (envDecayVal > 0){
+                    envDecayVal--;
+                }
+                else if (lengthHalt){   // lengthHalt = envelop loop flag
+                    envDecayVal = 15;
+                }
+            }
         }
-        else{
-            // Ugh
+        else {
             envelopeStart = false;
             envDecayVal = 15;
+            envDivider = volume + 1;
+        }
+        // Check constant volume
+        if (constantVol){
+            envelopeOutput = volume;
+        }
+        else {
+            envelopeOutput = envDecayVal;
         }
     }
 
@@ -123,9 +132,9 @@ public class SquareWave implements WaveChannel{
     public void sweepTick(){
         // TODO: Probably the sweep unit lol
         if (sweepReload){
-            if (sweepDividerCounter == 0 && sweepEnable){
+            /*if (sweepDividerCounter == 0 && sweepEnable){
                 adjustTimer(sweepShiftCount);
-            }
+            }*/
             sweepDividerCounter = sweepDividerPeriod;
             sweepReload = false;
         }
@@ -149,13 +158,25 @@ public class SquareWave implements WaveChannel{
         }
         int targetPeriod = timerLoad + tempAdder;
         targetPeriod &= 0xFFF;
-        if (targetPeriod > 0x7FF){
-            sweepOverflow = true;
-        }
-        else{
-            sweepOverflow = false;
+        if (sweepEnable && !sweepForcingSilence()){
             timerLoad = targetPeriod;
         }
+    }
+
+    // Checks if a conidition is causing sweep to force a silent output
+    private boolean sweepForcingSilence(){
+        boolean returnVal;
+        if (timerLoad < 8){
+            returnVal = true;
+        }
+        else if(!sweepNegate && timerLoad + (timerLoad >> sweepShiftCount) > 0x7FF){
+            returnVal = true;
+        }
+        else{
+            returnVal = false;
+        }
+
+        return returnVal;
     }
 
     @Override
@@ -195,11 +216,14 @@ public class SquareWave implements WaveChannel{
                 timerLoad = timerLoad & 0xFF;
                 timerLoad = timerLoad | (data & 0x7) << 8;
                 int lengthLoad = (data >> 3) & 0x1F;
-                lengthCounter = lengthTable[lengthLoad];
+                if (enabled) {
+                    lengthCounter = lengthTable[lengthLoad];
+                }
                 // Other?
                 sequencerPointer = 0;
                 timer = timerLoad;
                 //lengthCounter = lengthLoad;
+                envelopeStart = true;   // sets start on envelope
                 break;
         }
     }
@@ -214,5 +238,13 @@ public class SquareWave implements WaveChannel{
         boolean returnData = bufferFilled;
         bufferFilled = false;
         return returnData;
+    }
+
+    @Override
+    public void enabled(boolean enabled){
+        this.enabled = enabled;
+        if (!enabled){
+            lengthCounter = 0;
+        }
     }
 }

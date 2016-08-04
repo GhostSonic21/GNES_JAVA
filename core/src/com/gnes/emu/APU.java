@@ -59,6 +59,9 @@ public class APU {
             // Serially
             for (int i = 0; i < 5; i++){
                 channelEnable[i] = (data & 0x1) == 1;
+                if (channels[i] != null){
+                    channels[i].enabled(channelEnable[i]);
+                }
                 data >>= 1;
             }
         }
