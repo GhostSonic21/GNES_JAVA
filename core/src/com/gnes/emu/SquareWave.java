@@ -29,7 +29,6 @@ public class SquareWave implements WaveChannel{
     private int sweepShiftCount;
     private boolean sweepReload;
     private int sweepDividerCounter;
-    private boolean sweepOverflow;
 
     // Internal
     private int[] output = new int[4096];
@@ -62,7 +61,8 @@ public class SquareWave implements WaveChannel{
         else{
             timer = timerLoad;
             if (timer != 0){
-                timer = timer + 1;
+                // No idea if this is necessary
+                //timer = timer + 1;
             }
             sequencerPointer = (sequencerPointer + 1) & 0x7;
         }
@@ -73,7 +73,6 @@ public class SquareWave implements WaveChannel{
         // Sweep?
         // I dunno how to handle this so placeholder
         if (sweepForcingSilence()){
-            //sweepOverflow = false;
             outputVol = 0;
         }
         // Sequencer
@@ -132,9 +131,9 @@ public class SquareWave implements WaveChannel{
     public void sweepTick(){
         // TODO: Probably the sweep unit lol
         if (sweepReload){
-            /*if (sweepDividerCounter == 0 && sweepEnable){
+            if (sweepDividerCounter == 0 && sweepEnable){
                 adjustTimer(sweepShiftCount);
-            }*/
+            }
             sweepDividerCounter = sweepDividerPeriod;
             sweepReload = false;
         }
@@ -157,7 +156,7 @@ public class SquareWave implements WaveChannel{
             tempAdder = -(tempAdder + 1); // +1 should only be pulse 1 but eh
         }
         int targetPeriod = timerLoad + tempAdder;
-        targetPeriod &= 0xFFF;
+        targetPeriod &= 0x7FF;
         if (sweepEnable && !sweepForcingSilence()){
             timerLoad = targetPeriod;
         }
@@ -203,7 +202,7 @@ public class SquareWave implements WaveChannel{
                 sweepShiftCount = data & 0x7;
                 sweepNegate = (data & 0x8) == 0x8;
                 sweepDividerPeriod = ((data >> 4) & 0x7);
-                sweepEnable = (data & 0x80) == 0x80;
+                sweepEnable = (data & 0x80) == 0x80 && sweepShiftCount != 0;
                 sweepReload = true;
                 break;
             case 2:
@@ -214,7 +213,7 @@ public class SquareWave implements WaveChannel{
             case 3:
                 // length load(?), timer high
                 timerLoad = timerLoad & 0xFF;
-                timerLoad = timerLoad | (data & 0x7) << 8;
+                timerLoad = timerLoad | ((data & 0x7) << 8);
                 int lengthLoad = (data >> 3) & 0x1F;
                 if (enabled) {
                     lengthCounter = lengthTable[lengthLoad];

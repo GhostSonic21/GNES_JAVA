@@ -94,8 +94,7 @@ public class APU {
                 APUCycleCount++;
                 // Tick all channels
                 for (int i = 0; i < 5; i++){
-                    // TODO: I dunno if that channel enable works the way I think it does
-                    if (channels[i] != null/* && channelEnable[i]*/){
+                    if (channels[i] != null){
                         channels[i].tick();
                     }
                 }
