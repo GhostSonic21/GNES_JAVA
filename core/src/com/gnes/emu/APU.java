@@ -1,5 +1,8 @@
 package com.gnes.emu;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.AudioDevice;
+
 /**
  * Created by ghost_000 on 8/1/2016.
  */
@@ -18,10 +21,17 @@ public class APU {
 
     // Internal
     private int APUCycleCount;
+    private int CPUCycleCount;
     private boolean oddCPUcycle;
     private boolean IRQInterrupt;
     private WaveChannel[] channels;
     private boolean bufferFilled;
+
+    private double[] squareTable;
+    private float[] soundBuffer1 = new float[256];
+    private int APUBufferCount;
+    AudioDevice audioDevice1;
+    AudioDevice audioDevice2;
 
 
 
@@ -31,17 +41,25 @@ public class APU {
         channels = new WaveChannel[5];
         channels[0] = new SquareWave();
         channels[1] = new SquareWave();
+        generateSquareTable();
+        audioDevice1 = Gdx.audio.newAudioDevice(44100, true);
+        audioDevice2 = Gdx.audio.newAudioDevice(44100, true);
         // TODO: rest
     }
 
-    public int recieveData(int address){
+    public int receiveData(int address){
         int returnData = 0;
         if (address == 0x4015){
             // TODO
             // Return status bits
+            for (int i = 0; i < 5; i++){
+                if (channels[i] != null){
+                    returnData |= (channels[i].lengthAboveZero() ? 1:0) << i;
+                }
+            }
         }
         else {
-            System.err.printf("Invalid APU address 0x%x. Figure out why.\n", address);
+            System.err.printf("Invalid APU read address 0x%x. Figure out why.\n", address);
         }
 
         return returnData;
@@ -88,6 +106,8 @@ public class APU {
         // TODO: frame IRQ
         while (CPUcycles-- > 0){
             oddCPUcycle = !oddCPUcycle;
+            CPUCycleCount++;
+
             if (oddCPUcycle){
                 // This is the second CPU Cycle, so perform APU functions
                 // Increment counter
@@ -98,57 +118,70 @@ public class APU {
                         channels[i].tick();
                     }
                 }
-                // Stupid sequencer shit
-                if ((APUCycleCount % 3728) == 0){
-                    // Step
-                    frameStep++;
-                    // 4-step
-                    if (fcMode == false) {
-                        // 120 Hz stuff
-                        if ((frameStep % 2) == 0) {
-                            halfTick();
-                        }
-                        // 240 hz stuff
-                        // TODO: Triangle linear counter
-                        quarterTick();
+            }
+            // Frame stepper
+            // This happens between APU cycles apparently?
+            // Calculating against CPU cycles
+            if ((CPUCycleCount % 7457) == 0){
+                // Step
+                frameStep++;
+                // 4-step
+                if (fcMode == false) {
+                    // 120 Hz stuff
+                    if ((frameStep % 2) == 0) {
+                        halfTick();
+                    }
+                    // 240 hz stuff
+                    // TODO: Triangle linear counter
+                    quarterTick();
 
-                        // 60 Hz reset
-                        // TODO: IRQ
-                        if (frameStep == 4) {
+                    // 60 Hz reset
+                    // TODO: IRQ
+                    if (frameStep == 4) {
+                        frameStep = 0;
+                        APUCycleCount = 0;
+                        CPUCycleCount = 0;
+                    }
+                }
+
+                // 5-step
+                else{
+                    // TODO: Improve this
+                    switch (frameStep){
+                        case 1:
+                            quarterTick();
+                            break;
+                        case 2:
+                            quarterTick();
+                            halfTick();
+                            break;
+                        case 3:
+                            quarterTick();
+                            break;
+                        case 4:
+                            break;
+                        case 5:
+                            quarterTick();
+                            halfTick();
                             frameStep = 0;
                             APUCycleCount = 0;
-                        }
-                    }
+                            break;
 
-                    // 5-step
-                    else{
-                        // TODO: Improve this
-                        switch (frameStep){
-                            case 1:
-                                quarterTick();
-                                break;
-                            case 2:
-                                quarterTick();
-                                halfTick();
-                                break;
-                            case 3:
-                                quarterTick();
-                                break;
-                            case 4:
-                                break;
-                            case 5:
-                                quarterTick();
-                                halfTick();
-                                frameStep = 0;
-                                APUCycleCount = 0;
-                                break;
-
-                        }
                     }
                 }
             }
-        }
 
+            // Get output buffer, play it when filled with 256
+            if (APUBufferCount/40 >= soundBuffer1.length){
+                APUBufferCount = 0;
+                audioDevice1.writeSamples(soundBuffer1, 0, soundBuffer1.length);
+            }
+            if (APUBufferCount % 40 == 0) {
+                soundBuffer1[APUBufferCount / 40] = (float) squareTable[channels[0].getOutputVol() +
+                        channels[1].getOutputVol()];
+            }
+            APUBufferCount++;
+        }
         return;
     }
 
@@ -160,30 +193,22 @@ public class APU {
     }
 
     private void quarterTick(){
-        channels[0].envelopeTick();
-        channels[1].envelopeTick();
+        channels[0].quarterFrameTick();
+        channels[1].quarterFrameTick();
     }
 
     private void halfTick(){
         for (int i = 0; i < 4; i++) {
             if (channels[i] != null) {
-                channels[i].lengthTick();
-                channels[i].sweepTick();
+                channels[i].halfFrameTick();
             }
         }
     }
 
-    public boolean getBufferFilled(){
-        boolean returnData = channels[0].getBufferFilled();
-        //bufferFilled = false;
-        return returnData;
-    }
-
-    public int[] getOutputTemp(){
-        int[] returnArray = new int[channels[0].getOutput().length];
-        for (int i = 0; i < returnArray.length; i++){
-            returnArray[i] = channels[0].getOutput()[i] + channels[1].getOutput()[i];
+    private void generateSquareTable(){
+        squareTable = new double[31];
+        for (int i = 1; i < 31; i++){
+            squareTable[i] = 95.52/((8128/i)+100);
         }
-        return returnArray;
     }
 }

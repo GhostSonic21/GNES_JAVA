@@ -2,7 +2,6 @@ package com.gnes.emu;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.audio.AudioDevice;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -14,8 +13,6 @@ public class GNES_JAVA extends ApplicationAdapter {
     OrthographicCamera mainCamera;
 
     Texture frameBuffer;
-    AudioDevice device;
-    int[] tempAPUoutput;
 
 	// Emulator classes
     Cartridge NESCart;
@@ -42,7 +39,6 @@ public class GNES_JAVA extends ApplicationAdapter {
         mainCamera.position.set(256/2, 240/2, 0);   // Set camera position to the corner
         mainCamera.update();
         batch.setProjectionMatrix(mainCamera.combined);
-        device = Gdx.audio.newAudioDevice(44100, true);
 
         // Create Emulator Classes
         // If NESCart wasn't created, try loading some generic rom file
@@ -74,28 +70,6 @@ public class GNES_JAVA extends ApplicationAdapter {
             NESAPU.step(cycles);
             // Step the PPU
             NESPPU.step(cycles);
-
-            if (NESAPU.getBufferFilled()){
-                // Square lookup
-                double[] squarelookup = new double[31];
-                for (int i = 1; i < 31; i++){
-                    squarelookup[i] = 95.52/((8128/i)+100);
-                }
-                // Test
-                int[] APUBuffer = NESAPU.getOutputTemp();
-                float[] testBlock = new float[204];
-                //short[] testBlockShort = new short[204];
-                int foo = 0;
-                for (int i = 0; i < 204; i++){
-                    if (APUBuffer[i*20] != 0){
-                        //System.out.printf("test");
-                        testBlock[i] = (float)squarelookup[APUBuffer[i*20]];
-                        //testBlock[i] = ((float)(APUBuffer[i*20]))/100;
-                        //testBlockShort[i] = (short)APUBuffer[i*20];
-                    }
-                }
-                device.writeSamples(testBlock, 0, testBlock.length);
-            }
         }
         // Render the framebuffer once vblank starts
         frameBuffer = NESPPU.getFrameBuffer();

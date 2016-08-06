@@ -31,11 +31,6 @@ public class SquareWave implements WaveChannel{
     private int sweepDividerCounter;
 
     // Internal
-    private int[] output = new int[4096];
-    //private int[] output = new int[1024];
-    private int someOutputCounter = 0;
-    private boolean bufferFilled;
-
     // Silly lookup table for handling duty cycles easier
     private final boolean[][] squareDutyLookup =
                     {{false, true, false, false, false, false, false, false},   // 0
@@ -83,17 +78,20 @@ public class SquareWave implements WaveChannel{
         if (lengthCounter == 0) {
             outputVol = 0;
         }
-
-        output[someOutputCounter] = outputVol;
-        someOutputCounter++;
-        if (someOutputCounter == 4096){
-            bufferFilled = true;
-            someOutputCounter = 0;
-        }
     }
 
     @Override
-    public void envelopeTick(){
+    public void halfFrameTick(){
+        lengthTick();
+        sweepTick();
+    }
+
+    @Override
+    public void quarterFrameTick(){
+        envelopeTick();
+    }
+
+    private void envelopeTick(){
         // Tick envelope out into the mixer
         // ???
         // I'm not in the mood for this
@@ -103,7 +101,7 @@ public class SquareWave implements WaveChannel{
                 envDivider--;
             }
             else {
-                envDivider = volume + 1;
+                envDivider = volume;
                 // Clock decay
                 if (envDecayVal > 0){
                     envDecayVal--;
@@ -113,10 +111,11 @@ public class SquareWave implements WaveChannel{
                 }
             }
         }
+        // if started
         else {
             envelopeStart = false;
             envDecayVal = 15;
-            envDivider = volume + 1;
+            envDivider = volume; // NESDev makes a weird comment about (the period becomes V + 1). Doesn't look right
         }
         // Check constant volume
         if (constantVol){
@@ -127,8 +126,7 @@ public class SquareWave implements WaveChannel{
         }
     }
 
-    @Override
-    public void sweepTick(){
+    private void sweepTick(){
         // TODO: Probably the sweep unit lol
         if (sweepReload){
             if (sweepDividerCounter == 0 && sweepEnable){
@@ -178,8 +176,7 @@ public class SquareWave implements WaveChannel{
         return returnVal;
     }
 
-    @Override
-    public void lengthTick(){
+    private void lengthTick(){
         if (lengthCounter > 0 && !lengthHalt){
             lengthCounter--;
         }
@@ -228,22 +225,20 @@ public class SquareWave implements WaveChannel{
     }
 
     @Override
-    public int[] getOutput(){
-        return output;
-    }
-
-    @Override
-    public boolean getBufferFilled(){
-        boolean returnData = bufferFilled;
-        bufferFilled = false;
-        return returnData;
-    }
-
-    @Override
     public void enabled(boolean enabled){
         this.enabled = enabled;
         if (!enabled){
             lengthCounter = 0;
         }
+    }
+
+    @Override
+    public int getOutputVol(){
+        return outputVol;
+    }
+
+    @Override
+    public boolean lengthAboveZero(){
+        return lengthCounter > 0;
     }
 }

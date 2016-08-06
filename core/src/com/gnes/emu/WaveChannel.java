@@ -5,11 +5,10 @@ package com.gnes.emu;
  */
 public interface WaveChannel{
     void tick();
-    void envelopeTick();
-    void sweepTick();
-    void lengthTick();
+    void halfFrameTick();
+    void quarterFrameTick();
     void writeData(int address, int data);
-    int[] getOutput();
-    boolean getBufferFilled(); // Probably change this
     void enabled(boolean enabled);
+    int getOutputVol();
+    boolean lengthAboveZero();
 }

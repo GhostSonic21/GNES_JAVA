@@ -57,7 +57,7 @@ public class CPU_MMU {
             // APU
             // Only 0x4015 is readable
             if (address == 0x4015){
-                returnData = APU.recieveData(address);
+                returnData = APU.receiveData(address);
             }
 
             // Controller
