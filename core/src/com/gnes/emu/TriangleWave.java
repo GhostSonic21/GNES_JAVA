@@ -20,7 +20,7 @@ public class TriangleWave implements WaveChannel {
 
     // Some capcom games like to try and silence the triangle by adjusting the period really low, causing a "pop" sound
     // setting this true will cause low periods to not tick the triangle sequence, "hiding" the problem
-    private boolean trianglePopHack = false;
+    private boolean trianglePopHack = true;
 
     // Sequence lookup table
     private final int[] sequenceTable = {
