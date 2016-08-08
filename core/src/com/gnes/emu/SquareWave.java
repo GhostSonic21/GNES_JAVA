@@ -124,7 +124,6 @@ public class SquareWave implements WaveChannel{
     }
 
     private void sweepTick(){
-        // TODO: Probably the sweep unit lol
         if (sweepReload){
             if (sweepDividerCounter == 0 && sweepEnable){
                 adjustTimer(sweepShiftCount);
@@ -144,8 +143,6 @@ public class SquareWave implements WaveChannel{
     }
 
     private void adjustTimer(int amount){
-        // TODO: I don't think is implemented right?
-
         int tempAdder = timerLoad >> amount;
         if (sweepNegate){
             tempAdder = -(tempAdder + 1); // +1 should only be pulse 1 but eh
@@ -182,7 +179,6 @@ public class SquareWave implements WaveChannel{
     @Override
     public void writeData(int address, int data){
         int registerNum = address & 0x3;
-        // TODO: Various side effects
         switch (registerNum){
             case 0:
                 volume = data & 0xF;
@@ -191,8 +187,7 @@ public class SquareWave implements WaveChannel{
                 duty = (data >> 6) & 0x3;
                 break;
             case 1:
-                // TODO
-                // Sweep unit shit
+                // Sweep unit values
                 sweepShiftCount = data & 0x7;
                 sweepNegate = (data & 0x8) == 0x8;
                 sweepDividerPeriod = ((data >> 4) & 0x7);

@@ -53,13 +53,11 @@ public class APU {
         generateTables();
         audioDevice1 = Gdx.audio.newAudioDevice(44100, true);
         audioDevice2 = Gdx.audio.newAudioDevice(44100, true);
-        // TODO: rest
     }
 
     public int receiveData(int address){
         int returnData = 0;
         if (address == 0x4015){
-            // TODO
             // Return status bits
             for (int i = 0; i < 5; i++){
                 if (channels[i] != null){
@@ -120,7 +118,6 @@ public class APU {
     public void step(int CPUcycles){
         // Step
         // 2 CPU Cycles = 1 APU cycle
-        // TODO: frame IRQ
         while (CPUcycles-- > 0){
             oddCPUcycle = !oddCPUcycle;
             CPUCycleCount++;
@@ -156,7 +153,6 @@ public class APU {
                         halfTick();
                     }
                     // 240 hz stuff
-                    // TODO: Triangle linear counter
                     quarterTick();
 
                     // 60 Hz reset
@@ -173,7 +169,7 @@ public class APU {
 
                 // 5-step
                 else{
-                    // TODO: Improve this
+                    // TODO: Improve this?
                     switch (frameStep){
                         case 1:
                             quarterTick();
@@ -207,7 +203,7 @@ public class APU {
             if (APUBufferCount % 40 == 0) {
                 float squareOutputVal = squareTable[channels[0].getOutputVol() + channels[1].getOutputVol()];
                 soundBuffer1[APUBufferCount / 40] = squareOutputVal;
-                float tndOutputVal = tndTable[3 * channels[2].getOutputVol() + 2 * channels[3].getOutputVol()];    // TODO: Other 2 channels
+                float tndOutputVal = tndTable[3 * channels[2].getOutputVol() + 2 * channels[3].getOutputVol()];
                 soundBuffer2[APUBufferCount / 40] = tndOutputVal;
             }
             APUBufferCount++;
@@ -216,7 +212,6 @@ public class APU {
     }
 
     public boolean checkIRQ(){
-        // TODO Frame Counter IRQ
         boolean returnVal = DMCIRQInterrupt||frameIRQInterrupt;
         //frameIRQInterrupt = false;
         //DMCIRQInterrupt = false;
