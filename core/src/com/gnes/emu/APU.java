@@ -83,6 +83,7 @@ public class APU {
             if (channels[channelNum] != null){
                 channels[channelNum].writeData(address, data);
             }
+            DMCIRQInterrupt = false;
         }
         else if (address == 0x4015){
             // Enable bits
