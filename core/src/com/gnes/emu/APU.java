@@ -23,7 +23,8 @@ public class APU {
     private int APUCycleCount;
     private int CPUCycleCount;
     private boolean oddCPUcycle;
-    private boolean IRQInterrupt;
+    private boolean frameIRQInterrupt;
+    private boolean DMCIRQInterrupt;
     private WaveChannel[] channels;
     private boolean bufferFilled;
 
@@ -67,6 +68,8 @@ public class APU {
                     returnData |= (channels[i].lengthAboveZero() ? 1:0) << i;
                 }
             }
+            returnData |= ((frameInterrupt ? 1:0) << 6);
+            returnData |= ((DMCInterrupt ? 1:0) << 7);
         }
         else {
             System.err.printf("Invalid APU read address 0x%x. Figure out why.\n", address);
@@ -104,7 +107,8 @@ public class APU {
                 halfTick();
             }
             if (IRQInhibit){
-                IRQInterrupt = false;   // Kill possible pending IRQ if inhibit flag is turned on
+                frameIRQInterrupt = false;   // Kill IRQs if on
+                DMCIRQInterrupt = false;
             }
         }
         else {
@@ -159,7 +163,7 @@ public class APU {
                     // TODO: Constant IRQ interrupts after this step?
                     if (frameStep == 4) {
                         if (!IRQInhibit) {
-                            IRQInterrupt = true;
+                            frameIRQInterrupt = true;
                         }
                         frameStep = 0;
                         APUCycleCount = 0;
@@ -213,8 +217,9 @@ public class APU {
 
     public boolean checkIRQ(){
         // TODO Frame Counter IRQ
-        boolean returnVal = IRQInterrupt;
-        IRQInterrupt = false;
+        boolean returnVal = DMCIRQInterrupt||frameIRQInterrupt;
+        //frameIRQInterrupt = false;
+        //DMCIRQInterrupt = false;
         return returnVal;
     }
 
