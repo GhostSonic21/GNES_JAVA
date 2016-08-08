@@ -33,14 +33,11 @@ public class SquareWave implements WaveChannel{
     // Internal
     // Silly lookup table for handling duty cycles easier
     private final boolean[][] squareDutyLookup =
-                    {{false, true, false, false, false, false, false, false},   // 0
-                    {false, true, true, false, false, false, false, false},     // 1
-                    {false, true, true, true, true, false, false, false},       // 2
-                    {true, false, false, true, true, true, true, true}};        // 3
+                    {{false, true, false, false, false, false, false, false},   // 0 12.5%
+                    {false, true, true, false, false, false, false, false},     // 1 25%
+                    {false, true, true, true, true, false, false, false},       // 2 50%
+                    {true, false, false, true, true, true, true, true}};        // 3 75% (same sound as 25%)
 
-    private final int[] lengthTable = {
-            10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
-            12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30};
 
     // Constructor
     public SquareWave(){
@@ -65,8 +62,7 @@ public class SquareWave implements WaveChannel{
 
         outputVol = envelopeOutput;
         // 3 Gates
-        // Sweep?
-        // I dunno how to handle this so placeholder
+        // Sweep
         if (sweepForcingSilence()){
             outputVol = 0;
         }
@@ -213,7 +209,7 @@ public class SquareWave implements WaveChannel{
                 timerLoad = timerLoad | ((data & 0x7) << 8);
                 int lengthLoad = (data >> 3) & 0x1F;
                 if (enabled) {
-                    lengthCounter = lengthTable[lengthLoad];
+                    lengthCounter = APU.lengthTable[lengthLoad];
                 }
                 // Other?
                 sequencerPointer = 0;

@@ -27,12 +27,19 @@ public class APU {
     private WaveChannel[] channels;
     private boolean bufferFilled;
 
-    private double[] squareTable;
+    private float[] squareTable;   // square out = [square1 + square2]
+    private float[] tndTable;      // TND Out = [3*triangle + 2*noise + dmc]
     private float[] soundBuffer1 = new float[256];
+    private float[] soundBuffer2 = new float[256];
     private int APUBufferCount;
     AudioDevice audioDevice1;
     AudioDevice audioDevice2;
 
+
+    // Length table constant
+    public final static int[] lengthTable = {
+            10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
+            12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30};
 
 
     public APU(){
@@ -41,7 +48,9 @@ public class APU {
         channels = new WaveChannel[5];
         channels[0] = new SquareWave();
         channels[1] = new SquareWave();
-        generateSquareTable();
+        channels[2] = new TriangleWave();
+
+        generateTables();
         audioDevice1 = Gdx.audio.newAudioDevice(44100, true);
         audioDevice2 = Gdx.audio.newAudioDevice(44100, true);
         // TODO: rest
@@ -114,11 +123,18 @@ public class APU {
                 APUCycleCount++;
                 // Tick all channels
                 for (int i = 0; i < 5; i++){
-                    if (channels[i] != null){
+                    // Don't tick triangle (channel 3) here.
+                    if (channels[i] != null && i != 2){
                         channels[i].tick();
                     }
                 }
             }
+
+            // Triangle wave is ticked every CPU Cycle, not APU cycle
+            if(channels[2] != null){
+                channels[2].tick();
+            }
+
             // Frame stepper
             // This happens between APU cycles apparently?
             // Calculating against CPU cycles
@@ -175,10 +191,13 @@ public class APU {
             if (APUBufferCount/40 >= soundBuffer1.length){
                 APUBufferCount = 0;
                 audioDevice1.writeSamples(soundBuffer1, 0, soundBuffer1.length);
+                audioDevice2.writeSamples(soundBuffer2, 0, soundBuffer2.length);
             }
             if (APUBufferCount % 40 == 0) {
-                soundBuffer1[APUBufferCount / 40] = (float) squareTable[channels[0].getOutputVol() +
-                        channels[1].getOutputVol()];
+                float squareOutputVal = squareTable[channels[0].getOutputVol() + channels[1].getOutputVol()];
+                soundBuffer1[APUBufferCount / 40] = squareOutputVal;
+                float tndOutputVal = tndTable[3 * channels[2].getOutputVol()];    // TODO: Other 2 channels
+                soundBuffer2[APUBufferCount / 40] = tndOutputVal;
             }
             APUBufferCount++;
         }
@@ -195,20 +214,28 @@ public class APU {
     private void quarterTick(){
         channels[0].quarterFrameTick();
         channels[1].quarterFrameTick();
+        channels[2].quarterFrameTick();
     }
 
     private void halfTick(){
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             if (channels[i] != null) {
                 channels[i].halfFrameTick();
             }
         }
     }
 
-    private void generateSquareTable(){
-        squareTable = new double[31];
+    private void generateTables(){
+        // Square table
+        squareTable = new float[31];
         for (int i = 1; i < 31; i++){
-            squareTable[i] = 95.52/((8128/i)+100);
+            squareTable[i] = (float)(95.52/((8128/i)+100));
+        }
+
+        // TND Table
+        tndTable = new float[203];
+        for (int i = 1; i < 203; i++){
+            tndTable[i] = (float)(163.67/((24329/i)+100));
         }
     }
 }
