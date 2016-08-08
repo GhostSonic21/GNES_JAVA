@@ -18,6 +18,10 @@ public class TriangleWave implements WaveChannel {
     private int timer;
     private int sequencerPointer;
 
+    // Some capcom games like to try and silence the triangle by adjusting the period really low, causing a "pop" sound
+    // setting this true will cause low periods to not tick the triangle sequence, "hiding" the problem
+    private boolean trianglePopHack = false;
+
     // Sequence lookup table
     private final int[] sequenceTable = {
         15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
@@ -37,7 +41,7 @@ public class TriangleWave implements WaveChannel {
         // Covers weird behavior at super low frequency (Mega Man 2 makes whining sound if this isn't emulated)
         // Is this actually behaving right?
         boolean ultrasonic = false;
-        if (timerLoad < 2){
+        if (timerLoad < 2 && timer < 2){
             ultrasonic = true;
         }
 
@@ -47,12 +51,12 @@ public class TriangleWave implements WaveChannel {
         }
         else{
             timer = timerLoad;
-            if (linearCounter != 0 && lengthCounter != 0){
+            if (linearCounter != 0 && lengthCounter != 0 && (trianglePopHack ? !ultrasonic:true)){
                 sequencerPointer = (sequencerPointer + 1) & 0x1F;
             }
         }
 
-        if (!ultrasonic) {
+        if (trianglePopHack ? true:!ultrasonic) {
             outputVol = sequenceTable[sequencerPointer];
         }
         else{
