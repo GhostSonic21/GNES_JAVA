@@ -37,7 +37,7 @@ public class TriangleWave implements WaveChannel {
         // Covers weird behavior at super low frequency (Mega Man 2 makes whining sound if this isn't emulated)
         // Is this actually behaving right?
         boolean ultrasonic = false;
-        if (timerLoad < 2 && timer == 0){
+        if (timerLoad < 2){
             ultrasonic = true;
         }
 
@@ -56,7 +56,7 @@ public class TriangleWave implements WaveChannel {
             outputVol = sequenceTable[sequencerPointer];
         }
         else{
-            outputVol = 7;  // Technically should be 7.5, so this isn't very
+            outputVol = 0; // This isn't accurate to silence this, but I'm having trouble making this sound good.
         }
     }
 
