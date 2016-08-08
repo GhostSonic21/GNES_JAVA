@@ -59,8 +59,13 @@ public class SquareWave implements WaveChannel{
             sequencerPointer = (sequencerPointer + 1) & 0x7;
         }
 
-
-        outputVol = envelopeOutput;
+        // Check constant volume here
+        if (constantVol){
+            outputVol = volume;
+        }
+        else {
+            outputVol = envelopeOutput;
+        }
         // 3 Gates
         // Sweep
         if (sweepForcingSilence()){
@@ -113,13 +118,9 @@ public class SquareWave implements WaveChannel{
             envDecayVal = 15;
             envDivider = volume; // NESDev makes a weird comment about (the period becomes V + 1). Doesn't look right
         }
-        // Check constant volume
-        if (constantVol){
-            envelopeOutput = volume;
-        }
-        else {
-            envelopeOutput = envDecayVal;
-        }
+
+        // Set the output
+        envelopeOutput = envDecayVal;
     }
 
     private void sweepTick(){

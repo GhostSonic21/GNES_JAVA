@@ -49,6 +49,7 @@ public class APU {
         channels[0] = new SquareWave();
         channels[1] = new SquareWave();
         channels[2] = new TriangleWave();
+        channels[3] = new NoiseWave();
 
         generateTables();
         audioDevice1 = Gdx.audio.newAudioDevice(44100, true);
@@ -196,7 +197,7 @@ public class APU {
             if (APUBufferCount % 40 == 0) {
                 float squareOutputVal = squareTable[channels[0].getOutputVol() + channels[1].getOutputVol()];
                 soundBuffer1[APUBufferCount / 40] = squareOutputVal;
-                float tndOutputVal = tndTable[3 * channels[2].getOutputVol()];    // TODO: Other 2 channels
+                float tndOutputVal = tndTable[3 * channels[2].getOutputVol() + 2 * channels[3].getOutputVol()];    // TODO: Other 2 channels
                 soundBuffer2[APUBufferCount / 40] = tndOutputVal;
             }
             APUBufferCount++;
@@ -215,6 +216,7 @@ public class APU {
         channels[0].quarterFrameTick();
         channels[1].quarterFrameTick();
         channels[2].quarterFrameTick();
+        channels[3].quarterFrameTick();
     }
 
     private void halfTick(){
