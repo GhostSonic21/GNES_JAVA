@@ -14,8 +14,6 @@ public class APU {
     // Flags
     private boolean[] channelEnable = new boolean[5];    // 0: Pulse1, 1: Pulse2, 2: Triangle, 3: Noise, 4: DMC
     private boolean DMCActive;
-    private boolean frameInterrupt;
-    private boolean DMCInterrupt;
     private boolean fcMode;             // False: 4-step, True: 5-step
     private boolean IRQInhibit;
 
@@ -68,8 +66,9 @@ public class APU {
                     returnData |= (channels[i].lengthAboveZero() ? 1:0) << i;
                 }
             }
-            returnData |= ((frameInterrupt ? 1:0) << 6);
-            returnData |= ((DMCInterrupt ? 1:0) << 7);
+            returnData |= ((frameIRQInterrupt ? 1:0) << 6);
+            returnData |= ((DMCIRQInterrupt ? 1:0) << 7);
+            frameIRQInterrupt = false;
         }
         else {
             System.err.printf("Invalid APU read address 0x%x. Figure out why.\n", address);
