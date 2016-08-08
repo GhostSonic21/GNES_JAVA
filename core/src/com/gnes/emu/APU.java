@@ -103,6 +103,9 @@ public class APU {
                 quarterTick();
                 halfTick();
             }
+            if (IRQInhibit){
+                IRQInterrupt = false;   // Kill possible pending IRQ if inhibit flag is turned on
+            }
         }
         else {
             System.err.printf("Invalid APU write address 0x%x. Figure out why.\n", address);
@@ -153,8 +156,11 @@ public class APU {
                     quarterTick();
 
                     // 60 Hz reset
-                    // TODO: IRQ
+                    // TODO: Constant IRQ interrupts after this step?
                     if (frameStep == 4) {
+                        if (!IRQInhibit) {
+                            IRQInterrupt = true;
+                        }
                         frameStep = 0;
                         APUCycleCount = 0;
                         CPUCycleCount = 0;
