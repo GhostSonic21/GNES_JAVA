@@ -22,16 +22,18 @@ public class CPU_MMU {
     int[] RAM;  // Internal memory
     Cartridge cartridge;
     PPU PPU;
+    APU APU;
     Controller controller;
     int cycleAdditions;
 
     // Constructors
     // Add objects as needed
-    public CPU_MMU(Cartridge cartridge, PPU PPU, Controller controller){
+    public CPU_MMU(Cartridge cartridge, PPU PPU, Controller controller, APU APU){
         this.cartridge = cartridge;
         RAM = new int[0x800];   // Initalize 2KB internal ram
         this.PPU = PPU;
         this.controller = controller;
+        this.APU = APU;
     }
 
     // Read methods
@@ -52,8 +54,14 @@ public class CPU_MMU {
             // APU and I/O Registers
             // Implement as needed
 
+            // APU
+            // Only 0x4015 is readable
+            if (address == 0x4015){
+                returnData = APU.receiveData(address);
+            }
+
             // Controller
-            if (address == 0x4016 || address == 0x4017){
+            else if (address == 0x4016 || address == 0x4017){
                 returnData = controller.recieveData(address);
             }
         }
@@ -98,12 +106,14 @@ public class CPU_MMU {
         else if (address >= 0x4000 && address <= 0x401F) {
             // APU and I/O Registers
             // Implement as needed
-            // Controller
-            if (address == 0x4016 || address == 0x4017){
-                controller.sendData(address, data);
+
+            // APU
+            if (address <= 0x4013 || address == 0x4015 || address == 0x4017){
+                APU.writeData(address, data);
             }
+
             // OAM DMA
-            if(address == 0x4014){
+            else if (address == 0x4014){
                 int OAMDMAaddress = (data << 8);
                 int[] OAMData = new int[256];
                 for (int i = 0; i < 256; i++){
@@ -111,6 +121,12 @@ public class CPU_MMU {
                 }
                 PPU.OAMDMA(OAMData);
                 cycleAdditions += 513;  // 513 additional cpu cycles for a DMA
+            }
+
+            // Controller
+            // Only 4016 is used for the controller on write, 4017 writes to an APU register.
+            else if (address == 0x4016){
+                controller.sendData(address, data);
             }
         }
         else if (address >= 0x4020 && address <= 0x5FFF) {
