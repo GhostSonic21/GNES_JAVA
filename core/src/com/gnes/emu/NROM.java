@@ -23,7 +23,7 @@ public class NROM extends Cartridge{
     // Contstrctor
     public NROM(byte[] romFile){
         // NROM Init
-        //PRG_RAM = new byte[0x2000];  // Most NROM games don't use this, but some test roms do
+        PRG_RAM = new byte[0x2000];  // Most NROM games don't use this, but some test roms do
         // Save flags
         flags6 = romFile[0x06];
         flags7 = romFile[0x07];
