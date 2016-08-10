@@ -108,10 +108,13 @@ public class CPU {
             //System.out.printf("NMI\n");
         }
         // The interrupt disable flag only disables IRQ interrupts because what the hell does disable mean anyway
-        else if (!flag_I && IRQ){
+        else if (IRQ){
             // Vector
             // Certain instructions can be delay the IRQ interrupt for some odd reason.
-            interruptPush(0xFFFE);
+            if (!flag_I) {
+                // I'm hoping this is right
+                interruptPush(0xFFFE);
+            }
             IRQ = false;
         }
         // I dunno if this effected by the I flag. You would hope not
