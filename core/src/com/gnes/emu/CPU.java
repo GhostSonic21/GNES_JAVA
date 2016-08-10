@@ -185,10 +185,7 @@ public class CPU {
                     }
                     case 0x04:{
                         // BPL
-                        if(!flag_N){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(!flag_N, address);
                         break;
                     }
                     case 0x06:{
@@ -223,10 +220,7 @@ public class CPU {
                     }
                     case 0x0C:{
                         // BMI
-                        if (flag_N){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(flag_N, address);
                         break;
                     }
                     case 0x0E:{
@@ -266,10 +260,7 @@ public class CPU {
                     }
                     case 0x14:{
                         // BVC
-                        if(!flag_V){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(!flag_V, address);
                         break;
                     }
                     case 0x16:{
@@ -293,10 +284,7 @@ public class CPU {
                     }
                     case 0x1C:{
                         // BVS
-                        if (flag_V){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(flag_V, address);
                         break;
                     }
                     case 0x1E:{
@@ -318,10 +306,7 @@ public class CPU {
                     }
                     case 0x24:{
                         // BCC
-                        if (!flag_C) {
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(!flag_C, address);
                         break;
                     }
                     case 0x26:{
@@ -351,10 +336,7 @@ public class CPU {
                     }
                     case 0x2C:{
                         // BCS
-                        if(flag_C){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(flag_C, address);
                         break;
                     }
                     case 0x2E:{
@@ -381,10 +363,7 @@ public class CPU {
                     }
                     case 0x34:{
                         // BNE
-                        if (!flag_Z){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(!flag_Z, address);
                         break;
                     }
                     case 0x36:{
@@ -411,10 +390,7 @@ public class CPU {
                     }
                     case 0x3C:{
                         // BEQ
-                        if (flag_Z){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(flag_Z, address);
                         break;
                     }
                     case 0x3E:{
@@ -763,6 +739,13 @@ public class CPU {
     }
 
     // Some shortcut functions
+    private void branch(boolean condition, int address){
+        if (condition){
+            lastCycleCount++;   // Increase a cycle?
+            reg_PC = address;
+        }
+    }
+
     private int get_reg_F(){
         int returnVal = ((flag_C ? 1:0) << 0)|((flag_Z ? 1:0) << 1)|((flag_I ? 1:0) << 2)|((flag_D ? 1:0) << 3)
                 |((flag_B ? 1:0) << 4)|(1 << 5)|((flag_V ? 1:0) << 6)|((flag_N ? 1:0) << 7);
