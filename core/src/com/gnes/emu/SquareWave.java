@@ -52,10 +52,6 @@ public class SquareWave implements WaveChannel{
         }
         else{
             timer = timerLoad;
-            if (timer != 0){
-                // No idea if this is necessary
-                //timer = timer + 1;
-            }
             sequencerPointer = (sequencerPointer + 1) & 0x7;
         }
 
@@ -93,9 +89,7 @@ public class SquareWave implements WaveChannel{
     }
 
     private void envelopeTick(){
-        // Tick envelope out into the mixer
-        // ???
-        // I'm not in the mood for this
+        // Tick envelope
         if (!envelopeStart) {
             // Clock divider
             if (envDivider > 0) {
