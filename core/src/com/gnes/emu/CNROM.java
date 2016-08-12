@@ -23,6 +23,7 @@ public class CNROM extends Cartridge{
     // Contstrctor
     public CNROM(byte[] romFile){
         // NROM Init
+        PRG_RAM = new byte[0x2000];  // PRG Ram isn't part of the spec, but homebrew could use it? (maybe?)
         // Save flags
         flags6 = romFile[0x06];
         flags7 = romFile[0x07];
@@ -58,7 +59,7 @@ public class CNROM extends Cartridge{
     public int PRGRead(int address){
         int returnData = 0xFF;
         if (address >= 0x6000 && address <= 0x7FFF){
-            returnData = PRG_RAM[address - 0x6000];
+            returnData = PRG_RAM[address & 0x1FFF];
         }
         else if (address >= 0x8000 && address <= 0xFFFF){
             returnData = PRG_ROM[(address - 0x8000) & (PRGSize - 1)];
@@ -69,9 +70,11 @@ public class CNROM extends Cartridge{
     // Write(s)
     @Override
     public void PRGWrite(int address, int data){
-        // Since we're hard-coded to NROM for now, nothing is done on write except for ram.
-        if (address >= 0x8000){
-            CHRBank = data & 0xFF;
+        if (address >= 0x6000 && address <= 0x7FFF){
+            PRG_RAM[address & 0x1FFF] = (byte)data;
+        }
+        else if (address >= 0x8000){
+            CHRBank = data & 0x3;
         }
     }
 

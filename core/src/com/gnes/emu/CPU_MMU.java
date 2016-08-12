@@ -24,6 +24,8 @@ public class CPU_MMU {
     PPU PPU;
     APU APU;
     Controller controller;
+    int openBus;    // Contains the last value placed on the bus
+
     int cycleAdditions;
 
     // Constructors
@@ -38,10 +40,8 @@ public class CPU_MMU {
 
     // Read methods
     public int readByte(int address){
-        /*if (address == 0x4016){
-            System.out.println("Break");
-        }*/
-        int returnData = 0xFF;  // Data to return
+        int returnData = openBus;  // Data to return. Openbus usually returned on unmapped areas (disable if issues).
+        
         if (address >= 0x0000 && address <= 0x1FFF){
             returnData = RAM[address & 0x7FF];
         }
@@ -62,7 +62,8 @@ public class CPU_MMU {
 
             // Controller
             else if (address == 0x4016 || address == 0x4017){
-                returnData = controller.recieveData(address);
+                // 3 most significant bits are open bus. Paperboy relies on this for some odd reason.
+                returnData = controller.recieveData(address)|(openBus & 0xE0);
             }
         }
         else if (address >= 0x4020 && address <= 0x5FFF){
@@ -71,6 +72,7 @@ public class CPU_MMU {
         else if (address >= 0x6000 && address <= 0xFFFF){
             returnData = cartridge.PRGRead(address);
         }
+        openBus = returnData;   // Should openbus be updated on writes? Probably not?
         return returnData;
     }
 
