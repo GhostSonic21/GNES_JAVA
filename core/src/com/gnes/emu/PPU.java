@@ -125,8 +125,7 @@ public class PPU {
                 }
             }*/
             else if (cycleCount > 340) {
-                cycleCount -= 341;
-                //cycleCount = 0;
+                cycleCount = 0;
                 lineCount++;
                 if (lineCount < 240) {
                     // Zero out line buffer
@@ -155,9 +154,6 @@ public class PPU {
                     newVblank = true;
                     NMI = NMIGenerate;
                     NMIGenerated = NMIGenerate;
-                    // TODO: replace this rendering method
-                    //drawNameTable0();   // Temporary way of rendering just so we can have some output
-                    //drawSprites();      // Temp sprite draw
                 }
                 // Reset line count
                 if (lineCount > 260) {
@@ -330,7 +326,7 @@ public class PPU {
                 else {
                     returnByte = MMU.readByte(loopyV);
                     // Buffer contains mirrored nametable byte instead
-                    PPUDataReadBuffer = MMU.readByte(address & 0x2F1F);
+                    PPUDataReadBuffer = MMU.readByte(loopyV & 0x2F1F);
                 }
                 // Loopy Increment
                 loopyV = (loopyV + (VRAMInc ? 32:1)) & 0xFFFF;
@@ -343,7 +339,8 @@ public class PPU {
     public void OAMDMA(int[] OAMData){
         // Used specifically for handling DMA requests to PPU OAM
         for (int i = 0; i < 256; i++){
-            OAM[i] = OAMData[i];
+            int DMAAdress = (OAMADDR + i) & 0xFF;
+            OAM[DMAAdress] = OAMData[i];
         }
     }
 
