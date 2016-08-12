@@ -97,6 +97,7 @@ public class CPU_MMU {
 
     // Write methods
     public void writeByte(int address, int data) {
+        openBus = data;
         if (address >= 0x0000 && address <= 0x1FFF) {
             RAM[address & 0x7FF] = data;
         }

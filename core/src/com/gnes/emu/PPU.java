@@ -333,6 +333,7 @@ public class PPU {
                 break;
             }
         }
+        latch = returnByte;
         return returnByte;
     }
 
