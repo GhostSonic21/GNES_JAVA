@@ -55,6 +55,29 @@ public class CPU {
             2,6,2,8,3,3,5,5,2,2,2,2,4,4,6,6,
             2,5,0,8,4,4,6,6,2,4,2,7,4,4,7,7,
     };
+    // Lazy Page-Cross table
+    private final int opcodeCycleCountPageCross[] = {
+            7,6,0,8,3,3,5,5,3,2,2,2,4,4,6,6,
+            3,6,0,8,4,4,6,6,2,5,2,7,5,5,7,7,
+            6,6,0,8,3,3,5,5,4,2,2,2,4,4,6,6,
+            3,6,0,8,4,4,6,6,2,5,2,7,5,5,7,7,
+            6,6,0,8,3,3,5,5,3,2,2,2,3,4,6,6,
+            3,6,0,8,4,4,6,6,2,5,2,7,5,5,7,7,
+            6,6,0,8,3,3,5,5,4,2,2,2,5,4,6,6,
+            3,6,0,8,4,4,6,6,2,5,2,7,5,5,7,7,
+            2,6,2,6,3,3,3,3,2,2,2,2,4,4,4,4,
+            3,6,0,6,4,4,4,4,2,5,2,5,5,5,5,5,
+            2,6,2,6,3,3,3,3,2,2,2,2,4,4,4,4,
+            3,6,0,6,4,4,4,4,2,5,2,5,5,5,5,5,
+            2,6,2,8,3,3,5,5,2,2,2,2,4,4,6,6,
+            3,6,0,8,4,4,6,6,2,5,2,7,5,5,7,7,
+            2,6,2,8,3,3,5,5,2,2,2,2,4,4,6,6,
+            3,6,0,8,4,4,6,6,2,5,2,7,5,5,7,7,
+    };
+
+    // Keeps track of Page Crossing processing addresss modes, as well as sucesfull branching.
+    private boolean pageCross = false;
+    private boolean sucessfulBranch = false;
     private int lastCycleCount = 0;
 
 
@@ -108,10 +131,13 @@ public class CPU {
             //System.out.printf("NMI\n");
         }
         // The interrupt disable flag only disables IRQ interrupts because what the hell does disable mean anyway
-        else if (!flag_I && IRQ){
+        else if (IRQ){
             // Vector
             // Certain instructions can be delay the IRQ interrupt for some odd reason.
-            interruptPush(0xFFFE);
+            if (!flag_I) {
+                // I'm hoping this is right
+                interruptPush(0xFFFE);
+            }
             IRQ = false;
         }
         // I dunno if this effected by the I flag. You would hope not
@@ -123,25 +149,26 @@ public class CPU {
         int opcode = MMU.readByte(reg_PC) & 0xFF;
         // Used for debugging
         //System.out.printf("PC: 0x%04X Opcode: 0x%02x\n", reg_PC, opcode);
-        if (reg_PC == 0x8E5C){
-            //System.out.println("Break (Controller read)");
-        }
 
-        if (reg_PC == 0x824a){
-            //System.out.println("Break 2 (Menu start check)");
-            //flag_Z = true;
-        }
-
-        //
         reg_PC++;   // Advance PC ahead once before executing
         reg_PC &= 0xFFFF;
         decodeExecute(opcode);
+        // Save time in cycles that instruction took
+        if (!pageCross) {
+            lastCycleCount = opcodeCycleCount[opcode];
+        }
+        else{
+            lastCycleCount = opcodeCycleCountPageCross[opcode];
+        }
+        if (sucessfulBranch){
+            lastCycleCount++;   // Add one to branches
+        }
+        pageCross = false;
+        sucessfulBranch = false;
     }
 
     private void decodeExecute(int opcode){
-        lastCycleCount = opcodeCycleCount[opcode];
-
-        int type = opcode & 0x3;    // Seperate bottom 2 bits
+        int type = opcode & 0x3;    // Separate bottom 2 bits
         switch (type) {
             // Machine instructions
             case 0x00:{
@@ -162,7 +189,7 @@ public class CPU {
                     int relativeNum = MMU.readByte(reg_PC);
                     reg_PC = (reg_PC + 1) & 0xFFFF;
                     address = (reg_PC + (byte)relativeNum) & 0xFFFF;
-
+                    pageCross = (reg_PC & 0x100) != (address & 0x100);    // If bit 8 doesn't match, page-cross occurred
                 }
                 // There's about 46 unique instructions in this section
                 int instNum = opcode >> 2;
@@ -185,10 +212,7 @@ public class CPU {
                     }
                     case 0x04:{
                         // BPL
-                        if(!flag_N){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(!flag_N, address);
                         break;
                     }
                     case 0x06:{
@@ -223,10 +247,7 @@ public class CPU {
                     }
                     case 0x0C:{
                         // BMI
-                        if (flag_N){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(flag_N, address);
                         break;
                     }
                     case 0x0E:{
@@ -266,10 +287,7 @@ public class CPU {
                     }
                     case 0x14:{
                         // BVC
-                        if(!flag_V){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(!flag_V, address);
                         break;
                     }
                     case 0x16:{
@@ -293,10 +311,7 @@ public class CPU {
                     }
                     case 0x1C:{
                         // BVS
-                        if (flag_V){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(flag_V, address);
                         break;
                     }
                     case 0x1E:{
@@ -318,10 +333,7 @@ public class CPU {
                     }
                     case 0x24:{
                         // BCC
-                        if (!flag_C) {
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(!flag_C, address);
                         break;
                     }
                     case 0x26:{
@@ -351,10 +363,7 @@ public class CPU {
                     }
                     case 0x2C:{
                         // BCS
-                        if(flag_C){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(flag_C, address);
                         break;
                     }
                     case 0x2E:{
@@ -381,10 +390,7 @@ public class CPU {
                     }
                     case 0x34:{
                         // BNE
-                        if (!flag_Z){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(!flag_Z, address);
                         break;
                     }
                     case 0x36:{
@@ -411,10 +417,7 @@ public class CPU {
                     }
                     case 0x3C:{
                         // BEQ
-                        if (flag_Z){
-                            lastCycleCount++;
-                            reg_PC = address;
-                        }
+                        branch(flag_Z, address);
                         break;
                     }
                     case 0x3E:{
@@ -656,25 +659,7 @@ public class CPU {
         flag_C = result > 0xFF;
         flag_Z = reg_A == 0;
         flag_N = isNegative(reg_A);
-        // Stupid fucking overflow flag
-        //flag_V = ((oldA ^ reg_A) & (input ^ reg_A) & 0x80) > 0;
-        //flag_V = ((((oldA^ 0x80) + adding) >> 2) & 0x40) > 0;
         flag_V = (~(oldA ^ input) & (oldA ^ result) & 0x80) > 0;
-
-        //if ((byte)oldA > 0 && (byte)adding > 0 && (byte)reg_A <= 0 || (byte)oldA < 0 && (byte)adding < 0 && (byte)reg_A >= 0)
-        //flag_V = (byte)oldA > 0 && (byte)adding > 0 && (byte)reg_A <= 0
-        //        || (byte)oldA < 0 && (byte)adding < 0 && (byte)reg_A >= 0;
-        reg_A = reg_A;
-
-        /*int adding =  (input + (flag_C ? 1:0));
-        int result = reg_A + adding;
-        int oldA = reg_A;
-        reg_A = result & 0xFF;
-        flag_C = result > 0xFF;
-        flag_Z = reg_A == 0;
-        flag_N = isNegative(reg_A);
-        flag_V = ((oldA ^ reg_A) & (adding ^ reg_A) & 0x80) > 0;
-        reg_A = reg_A;  // Ughhhh*/
     }
     private void ALU_STA(int input){
         // Stores accumulator into memory
@@ -692,16 +677,6 @@ public class CPU {
         flag_N = isNegative((reg_A - input) & 0xFF);
     }
     private void ALU_SBC(int input){
-        /*int subber = (1 - (flag_C ? 1:0));  // amazing name
-        int result = reg_A - input - subber;
-        reg_A = result & 0xFF;
-        flag_Z = reg_A == 0;
-        flag_C = result > 0xFF;
-        flag_N = isNegative(reg_A);
-        flag_V = ((reg_A ^ result) & (input ^ result) & 0x80) > 0;*/
-        //input &= 0xff;
-        //input = ~input;
-        //input &= 0xFF;
         // I learned you can flip the bits and just use the adc method and it just works
         input ^= 0xff;
         ALU_ADC(input);
@@ -763,6 +738,21 @@ public class CPU {
     }
 
     // Some shortcut functions
+    private void branch(boolean condition, int address){
+        if (condition){
+            lastCycleCount++;   // Increase a cycle?
+            sucessfulBranch = true;
+            reg_PC = address;
+        }
+        else{
+            // Apparently pageCross penalty doesn't occur if branch isn't successful?
+            // I'm not sure how that works, but that's what the test suggests
+            // My guess is that the actual relative calculation isn't done unless branch is successful.
+            // However, it still retrieves the immediate byte. An accurate implementation should look different.
+            pageCross = false;
+        }
+    }
+
     private int get_reg_F(){
         int returnVal = ((flag_C ? 1:0) << 0)|((flag_Z ? 1:0) << 1)|((flag_I ? 1:0) << 2)|((flag_D ? 1:0) << 3)
                 |((flag_B ? 1:0) << 4)|(1 << 5)|((flag_V ? 1:0) << 6)|((flag_N ? 1:0) << 7);
@@ -794,7 +784,6 @@ public class CPU {
                 // Indexed indrect
                 int targetAddress = (MMU.readByte(reg_PC) + reg_X) & 0xFF;
                 address = MMU.readWordIndirect(targetAddress);
-
                 reg_PC++;
                 break;
             }
@@ -820,6 +809,7 @@ public class CPU {
                 // Indirect Indexed
                 address = MMU.readWordIndirect(MMU.readByte(reg_PC)) + reg_Y;
                 address &= 0xFFFF;
+                pageCross = (address & 0xFF) < reg_Y;
                 reg_PC++;
                 break;
             }
@@ -834,12 +824,15 @@ public class CPU {
                 // Absolute, Y
                 address = MMU.readWord(reg_PC) + reg_Y;
                 address &= 0xFFFF;
+                pageCross = (address & 0xFF) < reg_Y;
                 reg_PC += 2;
                 break;
             }
             case 0x07: {
                 // Absolute, X
-                address = MMU.readWord(reg_PC) + reg_X;
+                address =  MMU.readWord(reg_PC) + reg_X;
+                address &= 0xFFFF;
+                pageCross = (address & 0xFF) < reg_X;
                 reg_PC += 2;
                 break;
             }
@@ -862,66 +855,4 @@ public class CPU {
         // Jump to the interrupt vector
         reg_PC = MMU.readWord(vector);
     }
-
-    /*private int dataFromAddress (int mode) {
-        //int mode = (opcode >> 2) & 0x7;
-        int address = 0x0000;
-        int value = 0;  // Value that ends up being returned
-        switch (mode) {
-            case 0x00: {
-                // Indexed indrect
-                int loadAddress = MMU.readWord(MMU.readByte(reg_PC) + reg_X);
-                reg_PC++;
-                value = MMU.readByte(loadAddress);
-                break;
-            }
-            case 0x01: {
-                // Zero Page
-                value = MMU.readByte(MMU.readByte(reg_PC));
-                reg_PC++;
-                break;
-            }
-            case 0x02: {
-                // Immediate
-                value = MMU.readByte(reg_PC);
-                reg_PC++;
-                break;
-            }
-            case 0x03: {
-                // Absolute
-                value = MMU.readByte(MMU.readWord(reg_PC));
-                reg_PC += 2;
-                break;
-            }
-            case 0x04: {
-                // Indirect Indexed
-                int loadAddress = MMU.readWord(MMU.readByte(reg_PC)) + reg_Y;
-                reg_PC++;
-                value = MMU.readByte(loadAddress);
-                break;
-            }
-            case 0x05: {
-                // Zero Page, X
-                int loadAddress = MMU.readByte(reg_PC) + reg_X;
-                reg_PC++;
-                value = MMU.readByte(loadAddress);
-                break;
-            }
-            case 0x06: {
-                // Absolute, Y
-                int loadAddress = MMU.readWord(reg_PC) + reg_Y;
-                reg_PC += 2;
-                value = MMU.readByte(loadAddress);
-                break;
-            }
-            case 0x07: {
-                // Absolute, X
-                int loadAddress = MMU.readWord(reg_PC) + reg_X;
-                reg_PC += 2;
-                value = MMU.readByte(loadAddress);
-                break;
-            }
-        }
-        return value;
-    }*/
 }

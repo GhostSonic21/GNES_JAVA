@@ -9,7 +9,6 @@ import com.badlogic.gdx.audio.AudioDevice;
 public class APU {
     // Classes, variables, etc.
     // Universal registers
-    private int frameCounter;
     private int frameStep;
     // Flags
     private boolean[] channelEnable = new boolean[5];    // 0: Pulse1, 1: Pulse2, 2: Triangle, 3: Noise, 4: DMC
