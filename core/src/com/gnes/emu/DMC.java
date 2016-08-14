@@ -104,7 +104,7 @@ public class DMC implements WaveChannel {
         switch (registerNum){
             case 0:
                 // Flags and rate
-                timerLoad = rateTable[data & 0xF];
+                timerLoad = rateTable[data & 0xF] - 1;
                 loopFlag = (data & 0x40) == 0x40;
                 IRQEnabled = (data & 0x80) == 0x80;
                 if (!IRQEnabled){
