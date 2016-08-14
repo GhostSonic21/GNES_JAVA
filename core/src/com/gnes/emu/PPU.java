@@ -110,7 +110,7 @@ public class PPU {
             }
             else if (cycleCount == 304){
                 // Copy vertical bits during pre-render line
-                // Copying is meant to be partially done, so this is inaccruate
+                // Copying is meant to be partially done, so this is inaccurate
                 if ((showBG || showSprites) && lineCount == -1) {
                     loopyV = (loopyV & 0x41F)|(loopyT & 0xFBE0);
                     //loopyV = loopyT;
@@ -513,8 +513,10 @@ public class PPU {
                 }
             }
         }
-        //
+
         if (spriteCount == 0){
+            // For the sake of MMC3 compatibility, do a dummy sprite read (Not accurate, but should work).
+            MMU.readByte(spriteTable ? 0x1000 : 0x0000);
             return;
         }
         for (int i = 0; i < spriteCount; i++){
@@ -557,6 +559,14 @@ public class PPU {
                     }
                 }
             }
+        }
+        if (spriteCount < 8 && tallSprite){
+            // Dummy reads tile FF in 0x1000 if less than 8 sprites for 8x16 sprites
+            // Apparently this sort of happens (although not exactly like this).
+            // For MMC3 games using 8x16, we need this.
+            // Example: Without this, Kirby's Adventure's hud will flicker at times
+            // due to some sprites being in the other sprite region.
+            MMU.readByte(0x1FF0);
         }
         // Draw to linebuffer
         for (int i = 0; i < 256; i++){
