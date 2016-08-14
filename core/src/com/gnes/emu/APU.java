@@ -21,9 +21,8 @@ public class APU {
     private int CPUCycleCount;
     private boolean oddCPUcycle;
     private boolean frameIRQInterrupt;
-    private boolean DMCIRQInterrupt;
     private WaveChannel[] channels;
-    private boolean bufferFilled;
+    private DMC DMCChannel;
 
     private float[] squareTable;   // square out = [square1 + square2]
     private float[] tndTable;      // TND Out = [3*triangle + 2*noise + dmc]
@@ -40,7 +39,7 @@ public class APU {
             12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30};
 
 
-    public APU(){
+    public APU(Cartridge cartridge){
         // Constructor
         // Init waveChannels
         channels = new WaveChannel[5];
@@ -48,6 +47,8 @@ public class APU {
         channels[1] = new SquareWave();
         channels[2] = new TriangleWave();
         channels[3] = new NoiseWave();
+        DMCChannel = new DMC(cartridge);
+        channels[4] = DMCChannel;
 
         generateTables();
         audioDevice1 = Gdx.audio.newAudioDevice(44100, true);
@@ -64,7 +65,7 @@ public class APU {
                 }
             }
             returnData |= ((frameIRQInterrupt ? 1:0) << 6);
-            returnData |= ((DMCIRQInterrupt ? 1:0) << 7);
+            returnData |= ((DMCChannel.checkIRQ() ? 1:0) << 7);
             frameIRQInterrupt = false;
         }
         else {
@@ -80,7 +81,6 @@ public class APU {
             if (channels[channelNum] != null){
                 channels[channelNum].writeData(address, data);
             }
-            DMCIRQInterrupt = false;
         }
         else if (address == 0x4015){
             // Enable bits
@@ -105,7 +105,7 @@ public class APU {
             }
             if (IRQInhibit){
                 frameIRQInterrupt = false;   // Kill IRQs if on
-                DMCIRQInterrupt = false;
+                DMCChannel.setIRQEnabled(false);
             }
         }
         else {
@@ -128,15 +128,20 @@ public class APU {
                 // Tick all channels
                 for (int i = 0; i < 5; i++){
                     // Don't tick triangle (channel 3) here.
-                    if (channels[i] != null && i != 2){
+                    if (channels[i] != null){
                         channels[i].tick();
                     }
                 }
             }
-
-            // Triangle wave is ticked every CPU Cycle, not APU cycle
-            if(channels[2] != null){
-                channels[2].tick();
+            else{
+                // Triangle wave is ticked every cycle, so tick again.
+                if(channels[2] != null){
+                    channels[2].tick();
+                }
+                // Maybe DMC as well?
+                if (channels[4] != null){
+                    channels[4].tick();
+                }
             }
 
             // Frame stepper
@@ -202,7 +207,8 @@ public class APU {
             if (APUBufferCount % 40 == 0) {
                 float squareOutputVal = squareTable[channels[0].getOutputVol() + channels[1].getOutputVol()];
                 soundBuffer1[APUBufferCount / 40] = squareOutputVal;
-                float tndOutputVal = tndTable[3 * channels[2].getOutputVol() + 2 * channels[3].getOutputVol()];
+                float tndOutputVal = tndTable[(3 * channels[2].getOutputVol()) + (2 * channels[3].getOutputVol())
+                        + channels[4].getOutputVol()];
                 soundBuffer2[APUBufferCount / 40] = tndOutputVal;
             }
             APUBufferCount++;
@@ -211,21 +217,22 @@ public class APU {
     }
 
     public boolean checkIRQ(){
-        boolean returnVal = DMCIRQInterrupt||frameIRQInterrupt;
+        boolean returnVal = DMCChannel.checkIRQ()||frameIRQInterrupt;
         //frameIRQInterrupt = false;
         //DMCIRQInterrupt = false;
         return returnVal;
     }
 
     private void quarterTick(){
-        channels[0].quarterFrameTick();
-        channels[1].quarterFrameTick();
-        channels[2].quarterFrameTick();
-        channels[3].quarterFrameTick();
+        for (int i = 0; i < 4; i++){
+            if (channels[i] != null){
+                channels[i].quarterFrameTick();
+            }
+        }
     }
 
     private void halfTick(){
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 4; i++) {
             if (channels[i] != null) {
                 channels[i].halfFrameTick();
             }
@@ -244,5 +251,10 @@ public class APU {
         for (int i = 1; i < 203; i++){
             tndTable[i] = (float)(163.67/((24329/i)+100));
         }
+    }
+
+    public int getCycleAdditions(){
+        int returnVal = DMCChannel.getCycleAdditions();
+        return returnVal;
     }
 }
