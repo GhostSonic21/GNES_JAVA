@@ -20,7 +20,7 @@ public class Testers {
         Cartridge tester = Cartridge.getCartridge(new FileHandle("instr_test-v5/rom_singles/01-basics.nes"));
         PPU_MMU PPU_MMU = new PPU_MMU(tester);
         PPU PPU = new PPU(PPU_MMU);
-        CPU_MMU MMU  = new CPU_MMU (tester, PPU, new Controller(), new APU());
+        CPU_MMU MMU  = new CPU_MMU (tester, PPU, new Controller(), new APU(null));
         CPU CPU = new CPU(MMU);
 
         CPU.resetNES();

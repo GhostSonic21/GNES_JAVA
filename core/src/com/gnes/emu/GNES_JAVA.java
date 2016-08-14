@@ -45,7 +45,7 @@ public class GNES_JAVA extends ApplicationAdapter {
         if (NESCart == null) {
             NESCart = Cartridge.getCartridge(Gdx.files.internal("SuperMarioBros.nes"));
         }
-        NESAPU = new APU();
+        NESAPU = new APU(NESCart);
         NESController = new Controller();
         NESPPUMMU = new PPU_MMU(NESCart);
         NESPPU = new PPU(NESPPUMMU);
@@ -65,7 +65,7 @@ public class GNES_JAVA extends ApplicationAdapter {
             // Execute CPU
             NESCPU.execInst(NESPPU.NMITriggered(), NESCart.checkIRQ() || NESAPU.checkIRQ());
             // Get final CPU cycle count before triggering PPU step
-            int cycles = NESCPU.getLastCycleCount() + NESMMU.getCycleAdditions();
+            int cycles = NESCPU.getLastCycleCount() + NESMMU.getCycleAdditions() + NESAPU.getCycleAdditions();
             // Step the APU
             NESAPU.step(cycles);
             // Step the PPU
