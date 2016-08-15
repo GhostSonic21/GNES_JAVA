@@ -9,6 +9,7 @@ public class MMC3 extends Cartridge {
     private int CHRSize;
     private int CHRBanks;
     private int PRGRamSize;
+    private boolean CHRRAM;
 
     private byte[] PRGData;
     private byte[] CHRData;
@@ -62,8 +63,9 @@ public class MMC3 extends Cartridge {
             }
         }
         else{
-            System.err.printf("MMC3 shouldn't have CHR RAM(?)");
-            System.exit(-1);
+            CHRRAM = true;
+            CHRData = new byte[0x2000];
+            CHRSize = 0x2000;
         }
 
         // Create a PRG RAM
@@ -190,73 +192,82 @@ public class MMC3 extends Cartridge {
         handleIRQCounter(address);
 
         int returnVal = 0;
-        // 0 and 1 are the 2 2kb regions, the rest are the 1KB regions
-        int bankNum = (address >> 10) & 0x7;
-        int returnAddress = 0;
 
-        // The 2KB banks are a little weird to understand. Lower bit isn't accounted it seems.
-        if (!lowerCHRTwoBanks){
-            switch (bankNum){
-                // 2 2KB
-                case 0:
-                case 1:
-                    returnAddress = (address & 0x7FF)|((CHRBankValues[0] & 0xFE) << 10);
-                    break;
-                case 2:
-                case 3:
-                    returnAddress = (address & 0x7FF)|((CHRBankValues[1] & 0xFE) << 10);
-                    break;
-                // 4 1KB
-                case 4:
-                    returnAddress = (address & 0x3FF)|(CHRBankValues[2] << 10);
-                    break;
-                case 5:
-                    returnAddress = (address & 0x3FF)|(CHRBankValues[3] << 10);
-                    break;
-                case 6:
-                    returnAddress = (address & 0x3FF)|(CHRBankValues[4] << 10);
-                    break;
-                case 7:
-                    returnAddress = (address & 0x3FF)|(CHRBankValues[5] << 10);
-                    break;
-            }
-        }
-        else{
-            // Hopefully this is how it's supposed to work?
-            switch (bankNum){
-                // 4 1KB
-                case 0:
-                    returnAddress = (address & 0x3FF)|(CHRBankValues[2] << 10);
-                    break;
-                case 1:
-                    returnAddress = (address & 0x3FF)|(CHRBankValues[3] << 10);
-                    break;
-                case 2:
-                    returnAddress = (address & 0x3FF)|(CHRBankValues[4] << 10);
-                    break;
-                case 3:
-                    returnAddress = (address & 0x3FF)|(CHRBankValues[5] << 10);
-                    break;
-                // 2 2KB
-                case 4:
-                case 5:
-                    returnAddress = (address & 0x7FF)|((CHRBankValues[0] & 0xFE) << 10);
-                    break;
-                case 6:
-                case 7:
-                    returnAddress = (address & 0x7FF)|((CHRBankValues[1] & 0xFE) << 10);
-                    break;
-            }
-        }
-
+        int returnAddress = getCHRAddress(address);
         returnVal = CHRData[returnAddress & (CHRSize - 1)] & 0xFF;
         return returnVal;
     }
 
     @Override
     public void CHRWrite(int address, int data) {
-        // Probably shouldn't do anything
+        // Probably shouldn't do anything except when it's CHRRAM
         handleIRQCounter(address);  // IRQ counter still affected
+        if (CHRRAM){
+            int CHRAddress = getCHRAddress(address);
+            CHRData[CHRAddress & (CHRSize -1)] = (byte)data;
+        }
+    }
+
+    // CHR Banking address getter
+    private int getCHRAddress(int address){
+        // 0 and 1 are the 2 2kb regions, the rest are the 1KB regions
+        int bankNum = (address >> 10) & 0x7;
+        int returnAddress = 0;
+
+        // The 2KB banks are a little weird to understand. Lower bit isn't accounted it seems.
+        if (!lowerCHRTwoBanks) {
+            switch (bankNum) {
+                // 2 2KB
+                case 0:
+                case 1:
+                    returnAddress = (address & 0x7FF) | ((CHRBankValues[0] & 0xFE) << 10);
+                    break;
+                case 2:
+                case 3:
+                    returnAddress = (address & 0x7FF) | ((CHRBankValues[1] & 0xFE) << 10);
+                    break;
+                // 4 1KB
+                case 4:
+                    returnAddress = (address & 0x3FF) | (CHRBankValues[2] << 10);
+                    break;
+                case 5:
+                    returnAddress = (address & 0x3FF) | (CHRBankValues[3] << 10);
+                    break;
+                case 6:
+                    returnAddress = (address & 0x3FF) | (CHRBankValues[4] << 10);
+                    break;
+                case 7:
+                    returnAddress = (address & 0x3FF) | (CHRBankValues[5] << 10);
+                    break;
+            }
+        } else {
+            // Hopefully this is how it's supposed to work?
+            switch (bankNum) {
+                // 4 1KB
+                case 0:
+                    returnAddress = (address & 0x3FF) | (CHRBankValues[2] << 10);
+                    break;
+                case 1:
+                    returnAddress = (address & 0x3FF) | (CHRBankValues[3] << 10);
+                    break;
+                case 2:
+                    returnAddress = (address & 0x3FF) | (CHRBankValues[4] << 10);
+                    break;
+                case 3:
+                    returnAddress = (address & 0x3FF) | (CHRBankValues[5] << 10);
+                    break;
+                // 2 2KB
+                case 4:
+                case 5:
+                    returnAddress = (address & 0x7FF) | ((CHRBankValues[0] & 0xFE) << 10);
+                    break;
+                case 6:
+                case 7:
+                    returnAddress = (address & 0x7FF) | ((CHRBankValues[1] & 0xFE) << 10);
+                    break;
+            }
+        }
+        return returnAddress;
     }
 
     @Override
