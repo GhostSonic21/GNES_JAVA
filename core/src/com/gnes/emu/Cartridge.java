@@ -59,6 +59,9 @@ public abstract class Cartridge {
             case 4:
                 returnCart = new MMC3(romData);
                 break;
+            case 7:
+                returnCart = new AxROM(romData);
+                break;
             case 66:
                 returnCart = new GxROM(romData);
                 break;
