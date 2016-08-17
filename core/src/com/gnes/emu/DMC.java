@@ -167,6 +167,7 @@ public class DMC implements WaveChannel {
         return IRQ;
     }
 
+    // Nothing uses this, kept for posterity.
     public void setIRQEnabled(boolean IRQval){
         IRQEnabled = IRQval;
     }

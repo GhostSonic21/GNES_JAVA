@@ -105,7 +105,6 @@ public class APU {
             }
             if (IRQInhibit){
                 frameIRQInterrupt = false;   // Kill IRQs if on
-                DMCChannel.setIRQEnabled(false);
             }
         }
         else {
