@@ -27,9 +27,9 @@ public class CPU {
     private boolean flag_V; // Overflow
     private boolean flag_N; // Negative
 
-    // Interrupt flags. True if an interrupt has occured
-    boolean IRQ = false;    // Triggered by BRK and some mappers. Vector: 0xFFFA/B
-    boolean NMI = false;    // Triggered by vBlank. Vector 0xFFFE/F
+    // NMI Storage for detecting edge-triggeed NMI.
+    boolean lastNMI = false;
+    // Placeholder
     boolean RESET = false;  // Triggered by the Reset button. Vector 0xFFFC/D
 
     // Cycle count of opcode
@@ -106,46 +106,33 @@ public class CPU {
         return lastCycleCount;
     }
 
-    public void execInst(boolean NMI, boolean IRQ){
-        // An execute instruction method that can be executed to take in external NMIs in mind.
-        // Only trips the internal interrupt flag on, can't suddenly shut it off
-        if(NMI){
-            this.NMI = true;
-        }
-        if (IRQ){
-            this.IRQ = true;
-        }
-        execInst();
+    public void execInst(){
+        // Overflow for no parameters, executes with no interrupts
+        execInst(false, false);
     }
 
-    public void execInst(){
+    public void execInst(boolean NMI, boolean IRQ){
         // Execute One instruction
-        // TODO: Probably interrupts
+
         // Interrupts
         // NMI is handled first
-        if (NMI){
+        // Edge triggered, only triggered if NMI was low at first
+        if (NMI && !lastNMI){
             // Vector
             interruptPush(0xFFFA);
             flag_B = false; // Clear the B flag. This is probably kind of a hack.
-            NMI = false;
             //System.out.printf("NMI\n");
         }
         // The interrupt disable flag only disables IRQ interrupts because what the hell does disable mean anyway
-        else if (IRQ){
+        else if (IRQ && !flag_I){
             // Vector
             // Certain instructions can be delay the IRQ interrupt for some odd reason.
-            if (!flag_I) {
-                // I'm hoping this is right
-                interruptPush(0xFFFE);
-            }
-            IRQ = false;
+            interruptPush(0xFFFE);
         }
-        // I dunno if this effected by the I flag. You would hope not
-        else if (RESET){
-            // Not gonna fuck with it for now
-            RESET = false;
-        }
-        //
+        lastNMI = NMI;  // Save the NMI state
+
+        // Actual execution
+        // Gather opcode
         int opcode = MMU.readByte(reg_PC) & 0xFF;
         // Used for debugging
         //System.out.printf("PC: 0x%04X Opcode: 0x%02x\n", reg_PC, opcode);
