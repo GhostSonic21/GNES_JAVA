@@ -78,6 +78,7 @@ public class CPU {
     // Keeps track of Page Crossing processing addresss modes, as well as sucesfull branching.
     private boolean pageCross = false;
     private boolean sucessfulBranch = false;
+    private boolean interrupted = false;
     private int lastCycleCount = 0;
 
 
@@ -122,12 +123,14 @@ public class CPU {
             interruptPush(0xFFFA);
             flag_B = false; // Clear the B flag. This is probably kind of a hack.
             //System.out.printf("NMI\n");
+            interrupted = true;
         }
         // The interrupt disable flag only disables IRQ interrupts because what the hell does disable mean anyway
         else if (IRQ && !flag_I){
             // Vector
             // Certain instructions can be delay the IRQ interrupt for some odd reason.
             interruptPush(0xFFFE);
+            interrupted = true;
         }
         lastNMI = NMI;  // Save the NMI state
 
@@ -150,8 +153,12 @@ public class CPU {
         if (sucessfulBranch){
             lastCycleCount++;   // Add one to branches
         }
+        if (interrupted){
+            lastCycleCount += 7;
+        }
         pageCross = false;
         sucessfulBranch = false;
+        interrupted = false;
     }
 
     private void decodeExecute(int opcode){
@@ -615,7 +622,12 @@ public class CPU {
             case 0x03:{
                 // These are all unofficial instructions
                 // Give some type of error for now
-                    System.out.printf("Unofficial 6502 opcode 0x%02X detected at 0x%04X, treating as a NOP\n", opcode, reg_PC - 1);
+                System.out.printf("Unofficial 6502 opcode 0x%02X detected at 0x%04X, treating as a NOP\n", opcode, reg_PC - 1);
+                if (opcode == 0x7){
+                    int address = addressFromAddressingMode(0x1);
+                    MMU.writeByte(address, RMW_ASL(MMU.readByte(address)));
+                    ALU_ORA(MMU.readByte(address));
+                }
                 break;
             }
         }
